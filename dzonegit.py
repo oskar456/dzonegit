@@ -112,15 +112,15 @@ def get_altered_files(against, diff_filter=None):
     return (Path(p) for p in r.stdout.rstrip("\0").split("\0"))
 
 
-def get_zone_origin(zonedata, maxlines=10):
+def get_zone_origin(zonedata):
     """
-    Parse $ORIGIN directive in first maxlines lines of zone file.
+    Parse $ORIGIN directive before the SOA record.
     Return zone name without the trailing dot.
     """
-    for i, line in enumerate(zonedata.splitlines()):
-        if i >= maxlines:
+    for line in zonedata.splitlines():
+        if re.match(r"^[^\s;]+\s+([0-9]+\s+)?(IN\s+)?SOA\s+", line, re.I):
             break
-        m = re.match(r"^\$ORIGIN\s+([^ ]+)\.\s*(;.*)?$", line)
+        m = re.match(r"^\$ORIGIN\s+([^ ]+)\.\s*(;.*)?$", line, re.I)
         if m:
             return m.group(1).lower()
 

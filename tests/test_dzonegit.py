@@ -88,16 +88,10 @@ $ORIGIN example.com.
     testzone = """
 @	60 IN SOA ns hostmaster 1 60 60 60 60
 	60 IN NS ns
+$ORIGIN example.com.
 ns.example.com.      60 IN A 192.0.2.1
 """
     assert get_zone_origin(testzone) is None
-    testzone = """
-@	60 IN SOA ns hostmaster 1 60 60 60 60
-	60 IN NS ns
-ns.example.com.      60 IN A 192.0.2.1
-$ORIGIN sub.example.com.
-"""
-    assert get_zone_origin(testzone, 4) is None
 
 
 def test_get_zone_name():
