@@ -109,7 +109,10 @@ def get_altered_files(against, diff_filter=None):
             encoding="utf-8",
             check=True
             )
-    return (Path(p) for p in r.stdout.rstrip("\0").split("\0"))
+    if r.stdout:
+        return (Path(p) for p in r.stdout.rstrip("\0").split("\0"))
+    else:
+        return list()
 
 
 def get_zone_origin(zonedata):
