@@ -7,6 +7,33 @@ from hashlib import sha256
 from pathlib import Path
 
 
+class HookException(ValueError):
+    """Exception raised when there is an error in input data.
+
+    Attribures:
+        message -- the cause of problem
+        fname -- affected file
+        stderr -- output of the specific checker
+    """
+
+    def __init__(self, message, fname=None, stderr=None):
+        self.message = message
+        self.fname = fname
+        self.stderr = stderr
+
+    def __str__(self):
+        r = list()
+        if self.fname:
+            r.append(f"{self.fname}: ")
+        r.append(self.message)
+        r.append("\n")
+        if self.stderr:
+            r.append("\n")
+            r.append(self.stderr)
+            r.append("\n\n")
+        return "".join(r)
+
+
 def get_head():
     r = subprocess.run(
             ["git", "rev-parse", "--verify", "HEAD"],
@@ -24,9 +51,10 @@ def get_head():
 def check_whitespace_errors(against):
     r = subprocess.run(
             ["git", "diff-index", "--check", "--cached", against],
+            stderr=subprocess.PIPE
             )
     if r.returncode != 0:
-        raise ValueError("Whitespace errors")
+        raise HookException("Whitespace errors", r.stderr)
 
 
 def get_file_contents(path, revision=""):
@@ -100,7 +128,7 @@ def get_zone_origin(zonedata, maxlines=10):
 def get_zone_name(path, zonedata):
     """
     Try to guess zone name from either filename or the first $ORIGIN.
-    Throw a ValueError if filename and zone ORIGIN differ more than
+    Throw a HookException if filename and zone ORIGIN differ more than
     in slashes.
     """
     stemname = Path(path).stem.lower()
@@ -109,8 +137,8 @@ def get_zone_name(path, zonedata):
         tt = str.maketrans("", "", "/_,:-+*%^&#$")
         sn, on = [s.translate(tt) for s in [stemname, originname]]
         if sn != on:
-            raise ValueError('Zone origin and zone file name differ.',
-                             originname, stemname)
+            raise HookException(f"Zone origin {originname} differs from "
+                                "zone file.", fname=path)
         return originname
     else:
         return stemname
@@ -126,8 +154,8 @@ def check_updated_zones(against):
         zname = get_zone_name(f, zonedata)
         rnew = compile_zone(zname, zonedata)
         if not rnew.success:
-            raise ValueError("New zone version does not compile", str(f),
-                             rnew.stderr)
+            raise HookException("New zone version does not compile",
+                                f, rnew.stderr)
         try:
             zonedata = get_file_contents(f, against)
             zname = get_zone_name(f, zonedata)
@@ -135,8 +163,8 @@ def check_updated_zones(against):
 
             if (rold.success and rold.zonehash != rnew.zonehash and not
                     is_serial_increased(rold.serial, rnew.serial)):
-                raise ValueError("Zone contents changed without "
-                                 "increasing serial", f)
+                raise HookException("Zone contents changed without "
+                                    "increasing serial", fname=f)
         except subprocess.CalledProcessError:
             pass    # Old version of zone did not exist
 
@@ -146,8 +174,8 @@ def main():
     try:
         check_whitespace_errors(against)
         check_updated_zones(against)
-    except ValueError as e:
-        print("\n".join(e.args))
+    except HookException as e:
+        print(e)
         raise SystemExit(1)
 
 
