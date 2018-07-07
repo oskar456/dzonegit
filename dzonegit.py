@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sys
 import subprocess
 import re
 from collections import namedtuple
@@ -172,7 +173,7 @@ def check_updated_zones(against):
             pass    # Old version of zone did not exist
 
 
-def main():
+def pre_commit():
     against = get_head()
     try:
         check_whitespace_errors(against)
@@ -180,6 +181,15 @@ def main():
     except HookException as e:
         print(e)
         raise SystemExit(1)
+
+
+def main():
+    name = Path(sys.argv[0]).name
+    print(name)
+    if name == "pre-commit":
+        pre_commit()
+    else:
+        sys.exit("No valid command found")
 
 
 if __name__ == "__main__":
