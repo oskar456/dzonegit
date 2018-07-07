@@ -52,10 +52,12 @@ def get_head():
 def check_whitespace_errors(against):
     r = subprocess.run(
             ["git", "diff-index", "--check", "--cached", against],
-            stderr=subprocess.PIPE
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            encoding="utf-8",
             )
     if r.returncode != 0:
-        raise HookException("Whitespace errors", r.stderr)
+        raise HookException("Whitespace errors", stderr=r.stdout)
 
 
 def get_file_contents(path, revision=""):
