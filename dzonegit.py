@@ -3,6 +3,8 @@
 import sys
 import subprocess
 import re
+import time
+import datetime
 from collections import namedtuple
 from hashlib import sha256
 from pathlib import Path
@@ -98,6 +100,22 @@ def is_serial_increased(old, new):
     old, new = (int(n) for n in [old, new])
     diff = (new - old) % 2**32
     return 0 < diff < (2**31 - 1)
+
+
+def get_increased_serial(old):
+    """ Return increased serial number, automatically recognizing the type. """
+    old = int(old)
+    now = int(time.time())
+    todayserial = int(datetime.date.today().strftime("%Y%m%d00"))
+    if 1e9 < old < now:
+        # Serial is unix timestamp
+        return str(now)
+    elif 2e9 < old < todayserial:
+        # Serial is YYYYMMDDnn, updated before today
+        return str(todayserial)
+    else:
+        # No pattern recognized, just increase the number
+        return str(old + 1)
 
 
 def get_altered_files(against, diff_filter=None):

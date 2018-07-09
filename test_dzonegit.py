@@ -1,6 +1,8 @@
 
 import pytest
 import subprocess
+import time
+import datetime
 from pathlib import Path
 
 import dzonegit
@@ -165,3 +167,11 @@ $ORIGIN dummy.
 """)
     subprocess.call(["git", "add", "dummy.zone"])
     dzonegit.check_updated_zones(dzonegit.get_head())
+
+
+def test_get_increased_serial():
+    assert "2" == dzonegit.get_increased_serial(1)
+    assert str(int(time.time())) == dzonegit.get_increased_serial(1234567890)
+    todayser = datetime.date.today().strftime("%Y%m%d00")
+    assert todayser == dzonegit.get_increased_serial("2018010100")
+    assert str(int(todayser) + 1) == dzonegit.get_increased_serial(todayser)
