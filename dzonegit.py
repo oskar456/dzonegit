@@ -107,6 +107,8 @@ def get_increased_serial(old):
     old = int(old)
     now = int(time.time())
     todayserial = int(datetime.date.today().strftime("%Y%m%d00"))
+    # Note to my future self: This is expected to break on 2034-06-16
+    # as unix timestamp will become in the same range as YYMMDDnn serial
     if 1e9 < old < now:
         # Serial is unix timestamp
         return str(now)
