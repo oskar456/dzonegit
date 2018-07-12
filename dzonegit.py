@@ -68,19 +68,6 @@ def check_whitespace_errors(against, revision=None):
         )
 
 
-def check_tree_whitespace_errors(tree1, tree2):
-    r = subprocess.run(
-        ["git", "diff-tree", "--check", tree1, tree2],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-    )
-    if r.returncode != 0:
-        raise HookException(
-            "Whitespace errors",
-            stderr=r.stdout.decode("utf-8"),
-        )
-
-
 def get_file_contents(path, revision=None):
     """ Return contents of a file in staged env or in some revision. """
     revision = "" if revision is None else revision
