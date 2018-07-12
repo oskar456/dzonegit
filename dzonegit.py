@@ -51,9 +51,13 @@ def get_head():
         return "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 
 
-def check_whitespace_errors(against):
+def check_whitespace_errors(against, revision=None):
+    if revision:
+        cmd = ["git", "diff-tree", "--check", against, revision]
+    else:
+        cmd = ["git", "diff-index", "--check", "--cached", against]
     r = subprocess.run(
-        ["git", "diff-index", "--check", "--cached", against],
+        cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         encoding="utf-8",
@@ -62,8 +66,20 @@ def check_whitespace_errors(against):
         raise HookException("Whitespace errors", stderr=r.stdout)
 
 
-def get_file_contents(path, revision=""):
+def check_tree_whitespace_errors(tree1, tree2):
+    r = subprocess.run(
+        ["git", "diff-tree", "--check", tree1, tree2],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        encoding="utf-8",
+    )
+    if r.returncode != 0:
+        raise HookException("Whitespace errors", stderr=r.stdout)
+
+
+def get_file_contents(path, revision=None):
     """ Return contents of a file in staged env or in some revision. """
+    revision = "" if revision is None else revision
     r = subprocess.run(
         ["git", "show", f"{revision}:{path}"],
         stdout=subprocess.PIPE,
@@ -120,12 +136,21 @@ def get_increased_serial(old):
         return str(old + 1)
 
 
-def get_altered_files(against, diff_filter=None):
-    """ Return list of changed files. """
-    cmd = ["git", "diff", "--cached", "--name-only", "-z"]
+def get_altered_files(against, diff_filter=None, revision=None):
+    """ Return list of changed files.
+        If revision is None, list changes between staging area and
+        revision. Otherwise differences between two revisions are computed.
+    """
+    cmd = ["git", "diff", "--name-only", "-z"]
     if diff_filter:
         cmd.append(f"--diff-filter={diff_filter}")
-    cmd.append(against)
+    if revision:
+        cmd.append(against)
+        cmd.append(revision)
+    else:
+        cmd.append("--cached")
+        cmd.append(against)
+
     r = subprocess.run(
         cmd,
         stdout=subprocess.PIPE,
@@ -173,13 +198,13 @@ def get_zone_name(path, zonedata):
         return stemname
 
 
-def check_updated_zones(against):
+def check_updated_zones(against, revision=None):
     """ Check whether all updated zone files compile. """
-    for f in get_altered_files(against, "AM"):
+    for f in get_altered_files(against, "AM", revision):
         if not f.suffix == ".zone":
             continue
         print(f"Checking file {f}")
-        zonedata = get_file_contents(f)
+        zonedata = get_file_contents(f, revision)
         zname = get_zone_name(f, zonedata)
         rnew = compile_zone(zname, zonedata)
         if not rnew.success:
