@@ -193,3 +193,13 @@ def test_get_increased_serial():
     todayser = datetime.date.today().strftime("%Y%m%d00")
     assert todayser == dzonegit.get_increased_serial("2018010100")
     assert str(int(todayser) + 1) == dzonegit.get_increased_serial(todayser)
+
+
+def test_get_config():
+    subprocess.call(["git", "config", "test.bool", "TRUE"])
+    subprocess.call(["git", "config", "test.bool2", "fAlSe"])
+    subprocess.call(["git", "config", "test.int", "42"])
+    assert "TRUE" == dzonegit.get_config("test.bool")
+    assert dzonegit.get_config("test.bool", bool)
+    assert not dzonegit.get_config("test.bool2", bool)
+    assert 42 == dzonegit.get_config("test.int", int)

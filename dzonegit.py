@@ -221,6 +221,28 @@ def check_updated_zones(against, revision=None):
             pass    # Old version of zone did not exist
 
 
+def get_config(name, type_=None):
+    cmd = ["git", "config", ]
+    if type_ == bool:
+        cmd.append("--bool")
+    elif type_ == int:
+        cmd.append("--int")
+    elif type_:
+        raise ValueError("Invalid type supplied")
+    cmd.append(name)
+    r = subprocess.run(
+        cmd,
+        stdout=subprocess.PIPE,
+        check=True,
+    )
+    if type_ == bool:
+        return r.stdout == b"true\n"
+    elif type_ == int:
+        return int(r.stdout)
+    else:
+        return r.stdout.decode("utf-8").rstrip("\n")
+
+
 def pre_commit():
     against = get_head()
     try:
