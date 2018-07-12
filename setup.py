@@ -14,7 +14,7 @@ setup(
     entry_points={
             "console_scripts": [
                 "dzonegit = dzonegit:main",
-                "pre-commit = dzonegit:pre_commit",
+                "dzonegit-pre-commit = dzonegit:pre_commit",
             ],
     },
 )
