@@ -141,6 +141,44 @@ ns      60 IN A 192.0.2.1
     )
 
 
+def test_replace_serial(git_dir):
+    git_dir.join("dummy.zone").write("""
+@ 60 IN SOA ns hm 1 61 60 60 60
+  60 NS ns.example.org.
+""")
+    dzonegit.replace_serial(Path("dummy.zone"), "1", "60")
+    assert git_dir.join("dummy.zone").read() == """
+@ 60 IN SOA ns hm 60 61 60 60 60
+  60 NS ns.example.org.
+"""
+    dzonegit.replace_serial(Path("dummy.zone"), "60", "61")
+    assert git_dir.join("dummy.zone").read() == """
+@ 60 IN SOA ns hm 61 61 60 60 60
+  60 NS ns.example.org.
+"""
+    git_dir.join("dummy.zone").write("""
+@ 60 IN SOA ns hm (
+                60 ; serial
+                60 ; refresh
+                60 ; retry
+                60 ; expire
+                60 ; minimum
+                )
+  60 NS ns.example.org.
+""")
+    dzonegit.replace_serial(Path("dummy.zone"), "60", "6000000")
+    assert git_dir.join("dummy.zone").read() == """
+@ 60 IN SOA ns hm (
+                6000000 ; serial
+                60 ; refresh
+                60 ; retry
+                60 ; expire
+                60 ; minimum
+                )
+  60 NS ns.example.org.
+"""
+
+
 def test_check_updated_zones(git_dir):
     git_dir.chdir()
     git_dir.join("dummy.zone").write("")
@@ -178,9 +216,12 @@ $ORIGIN other.
         dzonegit.check_updated_zones(dzonegit.get_head())
     git_dir.join("dummy.zone").write("""
 $ORIGIN dummy.
-@ 60 IN SOA ns hm 2 60 60 60 60
+@ 60 IN SOA ns hm 1 61 60 60 60
   60 NS ns.example.org.
 """)
+    subprocess.call(["git", "add", "dummy.zone"])
+    with pytest.raises(ValueError):
+        dzonegit.check_updated_zones("HEAD", autoupdate_serial=True)
     subprocess.call(["git", "add", "dummy.zone"])
     dzonegit.check_updated_zones(dzonegit.get_head())
     subprocess.call(["git", "commit", "-m", "final dummy.zone"])

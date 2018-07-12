@@ -188,7 +188,7 @@ def get_zone_name(path, zonedata):
         return stemname
 
 
-def check_updated_zones(against, revision=None):
+def check_updated_zones(against, revision=None, autoupdate_serial=False):
     """ Check whether all updated zone files compile. """
     for f in get_altered_files(against, "AM", revision):
         if not f.suffix == ".zone":
@@ -209,13 +209,20 @@ def check_updated_zones(against, revision=None):
 
             if (rold.success and rold.zonehash != rnew.zonehash and not
                     is_serial_increased(rold.serial, rnew.serial)):
-                errmsg = "Old revision {}, serial {}, new serial {}".format(
+                errmsg = "Zone contents changed without increasing serial."
+                diagmsg = "Old revision {}, serial {}, new serial {}".format(
                     against, rold.serial, rnew.serial,
                 )
+
+                if autoupdate_serial:
+                    newserial = get_increased_serial(rnew.serial)
+                    replace_serial(f, rnew.serial, newserial)
+                    errmsg += " Serial has been automatically increased."
+                    errmsg += " Check and recommit."
                 raise HookException(
-                    "Zone contents changed without increasing serial",
+                    errmsg,
                     fname=f,
-                    stderr=errmsg,
+                    stderr=diagmsg,
                 )
         except subprocess.CalledProcessError:
             pass    # Old version of zone did not exist
@@ -233,8 +240,9 @@ def get_config(name, type_=None):
     r = subprocess.run(
         cmd,
         stdout=subprocess.PIPE,
-        check=True,
     )
+    if r.returncode != 0:
+        return None
     if type_ == bool:
         return r.stdout == b"true\n"
     elif type_ == int:
@@ -243,11 +251,26 @@ def get_config(name, type_=None):
         return r.stdout.decode("utf-8").rstrip("\n")
 
 
+def replace_serial(path, oldserial, newserial):
+    contents = path.read_text()
+    updated, count = re.subn(
+        r'(^.*\sSOA\s.+?\s){}([^0-9])'.format(oldserial),
+        r'\g<1>{}\g<2>'.format(newserial),
+        contents,
+        count=1,
+        flags=re.DOTALL | re.IGNORECASE | re.MULTILINE,
+    )
+    if count != 1:
+        raise HookException("Cannot update zone serial number")
+    path.write_text(updated)
+
+
 def pre_commit():
     against = get_head()
+    autoupdate_serial = not get_config("hooks.noserialupdate", bool)
     try:
         check_whitespace_errors(against)
-        check_updated_zones(against)
+        check_updated_zones(against, autoupdate_serial=autoupdate_serial)
     except HookException as e:
         print(e)
         raise SystemExit(1)
