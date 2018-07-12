@@ -37,13 +37,13 @@ def test_check_whitespace_errors(git_dir):
 
 def test_get_file_contents(git_dir):
     git_dir.chdir()
-    assert dzonegit.get_file_contents("dummy") == "dummy\n"
+    assert dzonegit.get_file_contents("dummy") == b"dummy\n"
     with pytest.raises(subprocess.CalledProcessError):
         dzonegit.get_file_contents('nonexistent')
 
 
 def test_compile_zone():
-    testzone = """
+    testzone = b"""
 $ORIGIN example.com.
 @       60 IN SOA ns hostmaster (
                                 1234567890 ; serial
@@ -63,7 +63,7 @@ ns.example.com.      60 IN A 192.0.2.1
     assert r.success
     assert r.serial == "1234567890"
     assert r.zonehash
-    r2 = dzonegit.compile_zone("example.com", testzone + "\n\n; some comment")
+    r2 = dzonegit.compile_zone("example.com", testzone + b"\n\n; some comment")
     assert r.zonehash == r2.zonehash
 
 
@@ -86,7 +86,7 @@ def test_get_altered_files(git_dir):
 
 
 def test_get_zone_origin():
-    testzone = """
+    testzone = b"""
 $ORIGIN examPle.com. ;coment
 @       60 IN SOA ns hostmaster 1 60 60 60 60
         60 IN NS ns
@@ -96,7 +96,7 @@ $ORIGIN subsub.example.com.
 $ORIGIN example.com.
 """
     assert "example.com" == dzonegit.get_zone_origin(testzone)
-    testzone = """
+    testzone = b"""
 @       60 IN SOA ns hostmaster 1 60 60 60 60
         60 IN NS ns
 $ORIGIN example.com.
@@ -106,7 +106,7 @@ ns.example.com.      60 IN A 192.0.2.1
 
 
 def test_get_zone_name():
-    testzone = """
+    testzone = b"""
 $ORIGIN eXample.com. ;coment
 @       60 IN SOA ns hostmaster 1 60 60 60 60
         60 IN NS ns
@@ -120,7 +120,7 @@ ns.example.com.      60 IN A 192.0.2.1
     )
     with pytest.raises(ValueError):
         dzonegit.get_zone_name("zones/example.org.zone", testzone)
-    testzone = """
+    testzone = b"""
 $ORIGIN 240/28.2.0.192.in-addr.arpa.
 @       60 IN SOA ns hostmaster 1 60 60 60 60
         60 IN NS ns

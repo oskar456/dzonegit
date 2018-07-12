@@ -27,7 +27,7 @@ class HookException(ValueError):
     def __str__(self):
         r = list()
         if self.fname:
-            r.append(f"{self.fname}: ")
+            r.append("{fname}: ".format(fname=self.fname))
         r.append(self.message)
         r.append("\n")
         if self.stderr:
@@ -42,10 +42,9 @@ def get_head():
         ["git", "rev-parse", "--verify", "HEAD"],
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
-        encoding="utf-8",
     )
     if r.returncode == 0:
-        return r.stdout.strip()
+        return r.stdout.decode("utf-8").strip()
     else:
         # Initial commit: diff against an empty tree object
         return "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
@@ -60,10 +59,12 @@ def check_whitespace_errors(against, revision=None):
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        encoding="utf-8",
     )
     if r.returncode != 0:
-        raise HookException("Whitespace errors", stderr=r.stdout)
+        raise HookException(
+            "Whitespace errors",
+            stderr=r.stdout.decode("utf-8"),
+        )
 
 
 def check_tree_whitespace_errors(tree1, tree2):
@@ -71,20 +72,21 @@ def check_tree_whitespace_errors(tree1, tree2):
         ["git", "diff-tree", "--check", tree1, tree2],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        encoding="utf-8",
     )
     if r.returncode != 0:
-        raise HookException("Whitespace errors", stderr=r.stdout)
+        raise HookException(
+            "Whitespace errors",
+            stderr=r.stdout.decode("utf-8"),
+        )
 
 
 def get_file_contents(path, revision=None):
     """ Return contents of a file in staged env or in some revision. """
     revision = "" if revision is None else revision
     r = subprocess.run(
-        ["git", "show", f"{revision}:{path}"],
+        ["git", "show", "{r}:{p}".format(r=revision, p=path)],
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
-        encoding="utf-8",
         check=True,
     )
     return r.stdout
@@ -100,15 +102,15 @@ def compile_zone(zonename, zonedata):
         input=zonedata,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        encoding="utf-8",
     )
-    m = re.search(r"^zone.*loaded serial ([0-9]*)$", r.stderr, re.MULTILINE)
+    stderr = r.stderr.decode("utf-8")
+    m = re.search(r"^zone.*loaded serial ([0-9]*)$", stderr, re.MULTILINE)
     if r.returncode == 0 and m:
         serial = m.group(1)
-        zonehash = sha256(r.stdout.encode("utf-8")).hexdigest()
-        return CompileResults(True, serial, zonehash, r.stderr)
+        zonehash = sha256(r.stdout).hexdigest()
+        return CompileResults(True, serial, zonehash, stderr)
     else:
-        return CompileResults(False, None, None, r.stderr)
+        return CompileResults(False, None, None, stderr)
 
 
 def is_serial_increased(old, new):
@@ -143,7 +145,7 @@ def get_altered_files(against, diff_filter=None, revision=None):
     """
     cmd = ["git", "diff", "--name-only", "-z"]
     if diff_filter:
-        cmd.append(f"--diff-filter={diff_filter}")
+        cmd.append("--diff-filter={}".format(diff_filter))
     if revision:
         cmd.append(against)
         cmd.append(revision)
@@ -155,11 +157,11 @@ def get_altered_files(against, diff_filter=None, revision=None):
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
-        encoding="utf-8",
         check=True,
     )
     if r.stdout:
-        return (Path(p) for p in r.stdout.rstrip("\0").split("\0"))
+        return (Path(p)
+                for p in r.stdout.decode("utf-8").rstrip("\0").split("\0"))
     else:
         return list()
 
@@ -170,11 +172,11 @@ def get_zone_origin(zonedata):
     Return zone name without the trailing dot.
     """
     for line in zonedata.splitlines():
-        if re.match(r"^[^\s;]+\s+([0-9]+\s+)?(IN\s+)?SOA\s+", line, re.I):
+        if re.match(br"^[^\s;]+\s+([0-9]+\s+)?(IN\s+)?SOA\s+", line, re.I):
             break
-        m = re.match(r"^\$ORIGIN\s+([^ ]+)\.\s*(;.*)?$", line, re.I)
+        m = re.match(br"^\$ORIGIN\s+([^ ]+)\.\s*(;.*)?$", line, re.I)
         if m:
-            return m.group(1).lower()
+            return m.group(1).decode("utf-8").lower()
 
 
 def get_zone_name(path, zonedata):
@@ -190,7 +192,7 @@ def get_zone_name(path, zonedata):
         sn, on = [s.translate(tt) for s in [stemname, originname]]
         if sn != on:
             raise HookException(
-                f"Zone origin {originname} differs from zone file.",
+                "Zone origin {o} differs from zone file.".format(o=originname),
                 fname=path,
             )
         return originname
@@ -203,7 +205,7 @@ def check_updated_zones(against, revision=None):
     for f in get_altered_files(against, "AM", revision):
         if not f.suffix == ".zone":
             continue
-        print(f"Checking file {f}")
+        print("Checking file {f}".format(f=f))
         zonedata = get_file_contents(f, revision)
         zname = get_zone_name(f, zonedata)
         rnew = compile_zone(zname, zonedata)
