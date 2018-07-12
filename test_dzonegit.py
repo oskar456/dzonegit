@@ -31,8 +31,13 @@ def test_check_whitespace_errors(git_dir):
     subprocess.call(["git", "add", "whitespace"])
     with pytest.raises(ValueError):
         dzonegit.check_whitespace_errors(dzonegit.get_head())
+    subprocess.call(["git", "commit", "-m", "whitespace"])
+    with pytest.raises(ValueError):
+        dzonegit.check_whitespace_errors("HEAD~", dzonegit.get_head())
     subprocess.call(["git", "rm", "-f", "whitespace"])
+    subprocess.call(["git", "commit", "-m", "rm whitespace"])
     dzonegit.check_whitespace_errors(dzonegit.get_head())
+    dzonegit.check_whitespace_errors("HEAD~", dzonegit.get_head())
 
 
 def test_get_file_contents(git_dir):
@@ -72,6 +77,7 @@ def test_is_serial_increased():
     assert dzonegit.is_serial_increased("2018010100", "4018010100")
     assert dzonegit.is_serial_increased("4018010100", "1234567890")
     assert not dzonegit.is_serial_increased(2018010100, "1234567890")
+    assert not dzonegit.is_serial_increased(1, 1)
 
 
 def test_get_altered_files(git_dir):
@@ -81,6 +87,9 @@ def test_get_altered_files(git_dir):
     subprocess.call(["git", "add", "dummy", "new"])
     files = set(dzonegit.get_altered_files("HEAD", "AM"))
     assert files == {Path("dummy"), Path("new")}
+    # Refers to test_check_whitespace_errors
+    files = set(dzonegit.get_altered_files("HEAD~", "D", "HEAD"))
+    assert files == {Path("whitespace")}
     subprocess.call(["git", "checkout", "-f", "HEAD"])
     assert set(dzonegit.get_altered_files("HEAD", "AM")) == set()
 
@@ -138,6 +147,9 @@ def test_check_updated_zones(git_dir):
     subprocess.call(["git", "add", "dummy.zone"])
     with pytest.raises(ValueError):
         dzonegit.check_updated_zones(dzonegit.get_head())
+    subprocess.call(["git", "commit", "-m", "empty dummy.zone"])
+    with pytest.raises(ValueError):
+        dzonegit.check_updated_zones("HEAD~", "HEAD")
     git_dir.join("dummy.zone").write("""
 @ 60 IN SOA ns hm 1 60 60 60 60
   60 NS ns.example.com.
@@ -145,6 +157,7 @@ def test_check_updated_zones(git_dir):
     subprocess.call(["git", "add", "dummy.zone"])
     dzonegit.check_updated_zones(dzonegit.get_head())
     subprocess.call(["git", "commit", "-m", "dummy.zone"])
+    dzonegit.check_updated_zones("HEAD~", "HEAD")
     git_dir.join("dummy.zone").write("""
 @ 60 IN SOA ns hm 1 60 60 60 60
   60 NS ns.example.org.
@@ -152,6 +165,9 @@ def test_check_updated_zones(git_dir):
     subprocess.call(["git", "add", "dummy.zone"])
     with pytest.raises(ValueError):
         dzonegit.check_updated_zones(dzonegit.get_head())
+    subprocess.call(["git", "commit", "-m", "updated dummy.zone"])
+    with pytest.raises(ValueError):
+        dzonegit.check_updated_zones("HEAD~", "HEAD")
     git_dir.join("dummy.zone").write("""
 $ORIGIN other.
 @ 60 IN SOA ns hm 1 60 60 60 60
@@ -167,6 +183,8 @@ $ORIGIN dummy.
 """)
     subprocess.call(["git", "add", "dummy.zone"])
     dzonegit.check_updated_zones(dzonegit.get_head())
+    subprocess.call(["git", "commit", "-m", "final dummy.zone"])
+    dzonegit.check_updated_zones("HEAD~", "HEAD")
 
 
 def test_get_increased_serial():
