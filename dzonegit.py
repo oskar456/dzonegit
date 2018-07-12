@@ -221,9 +221,13 @@ def check_updated_zones(against, revision=None):
 
             if (rold.success and rold.zonehash != rnew.zonehash and not
                     is_serial_increased(rold.serial, rnew.serial)):
+                errmsg = "Old revision {}, serial {}, new serial {}".format(
+                    against, rold.serial, rnew.serial,
+                )
                 raise HookException(
                     "Zone contents changed without increasing serial",
                     fname=f,
+                    stderr=errmsg,
                 )
         except subprocess.CalledProcessError:
             pass    # Old version of zone did not exist
