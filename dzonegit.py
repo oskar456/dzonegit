@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import sys
 import subprocess
 import re
@@ -243,11 +244,32 @@ def pre_commit():
         raise SystemExit(1)
 
 
+def update():
+    if "GIT_DIR" not in os.environ:
+        raise SystemExit("Don't run this hook from command line")
+    if len(sys.argv) < 4:
+        raise SystemExit(
+            "Usage: {} <ref> <oldrev> <newrev>".format(sys.argv[0]),
+        )
+    refname, against, revision = sys.argv[1:4]
+
+    if refname != "refs/heads/master":
+        raise SystemExit("Nothing else except master branch is accepted here")
+    try:
+        check_whitespace_errors(against, revision)
+        check_updated_zones(against, revision)
+    except HookException as e:
+        print(e)
+        raise SystemExit(1)
+
+
 def main():
     name = Path(sys.argv[0]).name
     print(name)
     if name == "pre-commit":
         pre_commit()
+    elif name == "update":
+        update()
     else:
         sys.exit("No valid command found")
 
