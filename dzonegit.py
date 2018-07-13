@@ -269,7 +269,8 @@ def pre_commit():
     against = get_head()
     autoupdate_serial = not get_config("hooks.noserialupdate", bool)
     try:
-        check_whitespace_errors(against)
+        if not get_config("hooks.ignorewhitespaceerrors", bool):
+            check_whitespace_errors(against)
         check_updated_zones(against, autoupdate_serial=autoupdate_serial)
     except HookException as e:
         print(e)
@@ -291,7 +292,8 @@ def update():
     if refname != "refs/heads/master":
         raise SystemExit("Nothing else except master branch is accepted here")
     try:
-        check_whitespace_errors(against, revision)
+        if not get_config("hooks.ignorewhitespaceerrors", bool):
+            check_whitespace_errors(against, revision)
         check_updated_zones(against, revision)
     except HookException as e:
         print(e)
