@@ -285,6 +285,9 @@ def update():
         )
     refname, against, revision = sys.argv[1:4]
 
+    if against == "0000000000000000000000000000000000000000":
+        against = get_head()  # Empty commit
+
     if refname != "refs/heads/master":
         raise SystemExit("Nothing else except master branch is accepted here")
     try:
