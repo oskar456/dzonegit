@@ -273,10 +273,23 @@ def test_post_receive(git_dir):
     git_dir.chdir()
     revisions = "{} {} ".format("0"*40, dzonegit.get_head())
     stdin = StringIO(revisions + "refs/heads/master\n")
-    codir1 = git_dir.mkdir("co1")
-    codir2 = git_dir.mkdir("co2")
-    subprocess.call(["git", "config", "dzonegit.checkoutpath", str(codir1)])
-    subprocess.call(["git", "config", "dzonegit.checkoutpath9", str(codir2)])
+    codir = git_dir.mkdir("co")
+    subprocess.call(["git", "config", "dzonegit.checkoutpath", str(codir)])
     dzonegit.post_receive(stdin)
-    assert codir1.join("dummy.zone").check()
-    assert codir2.join("dummy.zone").check()
+    assert codir.join("dummy.zone").check()
+
+
+def test_template_config(git_dir):
+    template = r"""{
+  "header": "# Managed by dzonegit on $datetime, do not edit.\n",
+  "footer": "# This is the end",
+  "item": " - zone: \"$zonename\"\n   file: \"$zonefile\"\n   $zonevar\n",
+  "defaultvar": "template: default",
+  "zonevars": {
+    "example.com": "template: signed"
+  }
+}"""
+    output = dzonegit.template_config(str(git_dir), template)
+    assert output.startswith("# Managed by dzonegit")
+    assert " - zone: \"dummy\"\n   file: \"" in output
+    assert output.endswith("# This is the end")

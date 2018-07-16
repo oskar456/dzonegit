@@ -6,9 +6,11 @@ import subprocess
 import re
 import time
 import datetime
+import json
 from collections import namedtuple
 from hashlib import sha256
 from pathlib import Path
+from string import Template
 
 
 class HookException(ValueError):
@@ -265,6 +267,51 @@ def replace_serial(path, oldserial, newserial):
     path.write_text(updated)
 
 
+def template_config(checkoutpath, template):
+    """ Recursively find all *.zone files and template config file using
+    a simple JSON based template like this:
+
+    {
+      "header": "# Managed by dzonegit, do not edit.\n",
+      "footer": "",
+      "item": " - zone: \"$zonename\"\n   file: \"$zonefile\"\n   $zonevar\n",
+      "defaultvar": "template: default",
+      "zonevars": {
+        "example.com": "template: signed"
+      }
+    }
+
+    Available placeholders are:
+      - $datetime - timestamp of file creation
+      - $zonename - zone name, without trailing dot
+      - $zonefile - full path to zone file
+      - $zonevar - per-zone specific variables, content of `defaultvar` if
+                   not defined for current zone
+    """
+    tpl = json.loads(template)
+    headertpl = Template(tpl.get("header", ""))
+    footertpl = Template(tpl.get("footer", ""))
+    itemtpl = Template(tpl.get("item", ""))
+    defaultvar = tpl.get("defaultvar", "")
+    zonevars = tpl.get("zonevars", dict())
+    out = list()
+    zones = set()
+    mapping = {"datetime": datetime.datetime.now().strftime("%c")}
+    out.append(headertpl.substitute(mapping))
+    for f in Path(checkoutpath).glob("**/*.zone"):
+        zonename = get_zone_name(f, f.read_bytes())
+        if zonename in zones:
+            continue  # Safety net in case duplicate zone file is found
+        zones.add(zonename)
+        zonevar = zonevars[zonename] if zonename in zonevars else defaultvar
+        out.append(itemtpl.substitute(
+            mapping, zonename=zonename,
+            zonefile=str(f), zonevar=zonevar,
+        ))
+    out.append(footertpl.substitute(mapping))
+    return "\n".join(out)
+
+
 def do_commit_checks(against, revision=None, autoupdate_serial=False):
     try:
         if not get_config("dzonegit.ignorewhitespaceerrors", bool):
@@ -323,16 +370,23 @@ def post_receive(stdin=sys.stdin):
     added or delefed.
     """
     suffixes = list(str(n) if n else "" for n in range(10))
-    for s in suffixes:
-        d = get_config("dzonegit.checkoutpath{}".format(s))
-        if d:
-            print("Checking out repository into {}…".format(d))
-            subprocess.run(
-                ["git", "checkout", "-f", "master"],
-                check=True,
-                env=dict(os.environ, GIT_WORK_TREE=d),
+    checkoutpath = get_config("dzonegit.checkoutpath")
+    if checkoutpath:
+        print("Checking out repository into {}…".format(checkoutpath))
+        subprocess.run(
+            ["git", "checkout", "-f", "master"],
+            check=True,
+            env=dict(os.environ, GIT_WORK_TREE=checkoutpath),
+        )
+        for s in suffixes:
+            cfpath = get_config("dzonegit.conffilepath{}".format(s))
+            tplpath = get_config("dzonegit.conffiletemplate{}".format(s))
+            if cfpath is None or tplpath is None:
+                continue
+            print("Templating config file {}…".format(cfpath))
+            Path(cfpath).write_text(
+                template_config(checkoutpath, Path(tplpath).read_text()),
             )
-    # TODO config
 
     if stdin.isatty():
         raise SystemExit(
