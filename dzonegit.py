@@ -298,7 +298,7 @@ def template_config(checkoutpath, template):
     zones = set()
     mapping = {"datetime": datetime.datetime.now().strftime("%c")}
     out.append(headertpl.substitute(mapping))
-    for f in Path(checkoutpath).glob("**/*.zone"):
+    for f in sorted(Path(checkoutpath).glob("**/*.zone")):
         zonename = get_zone_name(f, f.read_bytes())
         if zonename in zones:
             continue  # Safety net in case duplicate zone file is found
