@@ -316,6 +316,38 @@ def pre_receive(stdin=sys.stdin):
         do_commit_checks(against, revision)
 
 
+def post_receive(stdin=sys.stdin):
+    """Checkout the repository to a path specified in the config.
+    Re-generate config files using defined templates. Issue reload
+    commands for modified zone files, issue reconfig command if zones were
+    added or delefed.
+    """
+    suffixes = list(str(n) if n else "" for n in range(10))
+    for s in suffixes:
+        d = get_config("dzonegit.checkoutpath{}".format(s))
+        if d:
+            print("Checking out repository into {}…".format(d))
+            subprocess.run(
+                ["git", "checkout", "-f", "master"],
+                check=True,
+                env=dict(os.environ, GIT_WORK_TREE=d),
+            )
+    # TODO config
+
+    if stdin.isatty():
+        raise SystemExit(
+            "Standard input should be redirected. Not issuing any reload "
+            "commands.",
+        )
+    for line in stdin:
+        against, revision, refname = line.rstrip().split(" ")
+        if refname != "refs/heads/master":
+            continue
+        if against == "0000000000000000000000000000000000000000":
+            against = get_head()  # Empty commit
+        # TODO reloads
+
+
 def main():
     name = Path(sys.argv[0]).name
     print(name)
@@ -325,6 +357,8 @@ def main():
         update()
     elif name == "pre-receive":
         pre_receive()
+    elif name == "post-receive":
+        post_receive()
     else:
         sys.exit("No valid command found")
 

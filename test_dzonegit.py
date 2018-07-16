@@ -267,3 +267,16 @@ def test_pre_receive(git_dir):
         dzonegit.pre_receive(stdin)
     stdin = StringIO(revisions + "refs/heads/master\n")
     dzonegit.pre_receive(stdin)
+
+
+def test_post_receive(git_dir):
+    git_dir.chdir()
+    revisions = "{} {} ".format("0"*40, dzonegit.get_head())
+    stdin = StringIO(revisions + "refs/heads/master\n")
+    codir1 = git_dir.mkdir("co1")
+    codir2 = git_dir.mkdir("co2")
+    subprocess.call(["git", "config", "dzonegit.checkoutpath", str(codir1)])
+    subprocess.call(["git", "config", "dzonegit.checkoutpath9", str(codir2)])
+    dzonegit.post_receive(stdin)
+    assert codir1.join("dummy.zone").check()
+    assert codir2.join("dummy.zone").check()
