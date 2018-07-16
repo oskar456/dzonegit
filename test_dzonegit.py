@@ -3,6 +3,8 @@ import pytest
 import subprocess
 import time
 import datetime
+import os
+from io import StringIO
 from pathlib import Path
 
 import dzonegit
@@ -244,3 +246,24 @@ def test_get_config():
     assert dzonegit.get_config("test.bool", bool)
     assert not dzonegit.get_config("test.bool2", bool)
     assert 42 == dzonegit.get_config("test.int", int)
+
+
+def test_update(git_dir):
+    git_dir.chdir()
+    os.environ.update({"GIT_DIR": str(git_dir.join(".git"))})
+    with pytest.raises(SystemExit):
+        dzonegit.update(["update", "refs/heads/slave", "0", "0"])
+    dzonegit.update([
+        "update", "refs/heads/master",
+        "0"*40, dzonegit.get_head(),
+    ])
+
+
+def test_pre_receive(git_dir):
+    git_dir.chdir()
+    revisions = "{} {} ".format("0"*40, dzonegit.get_head())
+    stdin = StringIO(revisions + "refs/heads/slave\n")
+    with pytest.raises(SystemExit):
+        dzonegit.pre_receive(stdin)
+    stdin = StringIO(revisions + "refs/heads/master\n")
+    dzonegit.pre_receive(stdin)

@@ -265,39 +265,55 @@ def replace_serial(path, oldserial, newserial):
     path.write_text(updated)
 
 
-def pre_commit():
-    against = get_head()
-    autoupdate_serial = not get_config("hooks.noserialupdate", bool)
+def do_commit_checks(against, revision=None, autoupdate_serial=False):
     try:
-        if not get_config("hooks.ignorewhitespaceerrors", bool):
-            check_whitespace_errors(against)
-        check_updated_zones(against, autoupdate_serial=autoupdate_serial)
+        if not get_config("dzonegit.ignorewhitespaceerrors", bool):
+            check_whitespace_errors(against, revision=revision)
+        check_updated_zones(
+            against, revision=revision,
+            autoupdate_serial=autoupdate_serial,
+        )
     except HookException as e:
         print(e)
         raise SystemExit(1)
 
 
-def update():
+def pre_commit():
+    against = get_head()
+    autoupdate_serial = not get_config("dzonegit.noserialupdate", bool)
+    do_commit_checks(against, autoupdate_serial=autoupdate_serial)
+
+
+def update(argv=sys.argv):
     if "GIT_DIR" not in os.environ:
-        raise SystemExit("Don't run this hook from command line")
-    if len(sys.argv) < 4:
+        raise SystemExit("Don't run this hook from the command line")
+    if len(argv) < 4:
         raise SystemExit(
-            "Usage: {} <ref> <oldrev> <newrev>".format(sys.argv[0]),
+            "Usage: {} <ref> <oldrev> <newrev>".format(argv[0]),
         )
-    refname, against, revision = sys.argv[1:4]
+    refname, against, revision = argv[1:4]
 
     if against == "0000000000000000000000000000000000000000":
         against = get_head()  # Empty commit
 
     if refname != "refs/heads/master":
-        raise SystemExit("Nothing else except master branch is accepted here")
-    try:
-        if not get_config("hooks.ignorewhitespaceerrors", bool):
-            check_whitespace_errors(against, revision)
-        check_updated_zones(against, revision)
-    except HookException as e:
-        print(e)
-        raise SystemExit(1)
+        raise SystemExit("Nothing else than master branch is accepted here")
+    do_commit_checks(against, revision)
+
+
+def pre_receive(stdin=sys.stdin):
+    if stdin.isatty():
+        raise SystemExit("Don't run this hook from the command line")
+    for line in stdin:
+        against, revision, refname = line.rstrip().split(" ")
+        if refname != "refs/heads/master":
+            raise SystemExit(
+                "Nothing else than master branch "
+                "is accepted here",
+            )
+        if against == "0000000000000000000000000000000000000000":
+            against = get_head()  # Empty commit
+        do_commit_checks(against, revision)
 
 
 def main():
@@ -307,6 +323,8 @@ def main():
         pre_commit()
     elif name == "update":
         update()
+    elif name == "pre-receive":
+        pre_receive()
     else:
         sys.exit("No valid command found")
 
