@@ -295,14 +295,21 @@ def template_config(checkoutpath, template):
     defaultvar = tpl.get("defaultvar", "")
     zonevars = tpl.get("zonevars", dict())
     out = list()
-    zones = set()
+    zones = dict()
     mapping = {"datetime": datetime.datetime.now().strftime("%c")}
     out.append(headertpl.substitute(mapping))
     for f in sorted(Path(checkoutpath).glob("**/*.zone")):
         zonename = get_zone_name(f, f.read_bytes())
         if zonename in zones:
-            continue  # Safety net in case duplicate zone file is found
-        zones.add(zonename)
+            print(
+                "WARNING: Duplicate zone file found for zone {}. "
+                "Using file {}, ignoring {}.".format(
+                    zonename, zones[zonename],
+                    f.relative_to(checkoutpath),
+                ),
+            )
+            continue
+        zones[zonename] = f.relative_to(checkoutpath)
         zonevar = zonevars[zonename] if zonename in zonevars else defaultvar
         out.append(itemtpl.substitute(
             mapping, zonename=zonename,
