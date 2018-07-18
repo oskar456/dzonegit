@@ -1,10 +1,15 @@
 from setuptools import setup
+from pathlib import Path
 
+readme = Path(__file__).with_name("README.rst").read_text()
 
 setup(
     name="dzonegit",
     version="0.1",
-    description="Git hooks to admin DNS zone files in git",
+    description="Git hooks to manage a repository of DNS zones",
+    long_description=readme,
+    long_description_content_type="text/x-rst",
+    url="https://github.com/oskar456/dzonegit",
     author="Ondřej Caletka",
     author_email="ondrej@caletka.cz",
     license="MIT",

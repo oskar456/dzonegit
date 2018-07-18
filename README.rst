@@ -1,29 +1,46 @@
 Git hooks to manage a repository of DNS zones
 =============================================
 
+``dzonegit`` is a set of Git hooks allowing you to manage DNS zone files in a
+git repository. First, zone file sanity checks are run by ``pre-commit`` hook
+on your computer. After pushing changes to a bare repository on the DNS server,
+the sanity checks are run again on the server and if everything is OK,
+repository is checked out to a directory, DNS software configuration
+snippets are re-generated from a simple template and finally reload command
+is issued.
+
 Main features
 -------------
 
- - check if zone file compiles properly using `named-compilezone(8)`_
- - autodetect zone name from file name or ``$ORIGIN`` directive
- - enforce updating serial number when zone content is changed
- - both ``pre-commit`` and ``pre-receive``/``update`` hooks to enforce similar checks in the remote repository
- - ``post-receive`` hook to checkout the working copy from a bare repository, generate config snippets for various DNS server software and reload them
- - only Python standard library is used
+- check if zone file compiles properly using `named-compilezone(8)`_
+- autodetect zone name from file name or ``$ORIGIN`` directive
+- enforce updating serial number when zone content is changed
+- both ``pre-commit`` and ``pre-receive``/``update`` hooks to enforce similar checks in the remote repository
+- ``post-receive`` hook to checkout the working copy from a bare repository, generate config snippets for various DNS server software and reload them
+- only Python standard library is used
 
 
 Requirements
 ------------
 
- - Python 3.5+
- - `named-compilezone(8)`_ (part of BIND9 package)
- - git
+- Python 3.5+
+- `named-compilezone(8)`_ (part of BIND9 package)
+- git
 
 
 Instalation and usage
 ---------------------
 
-Please note that this project is not finished yet. Detailed instructions will follow later.
+- install required dependencies
+- install ``dzonegit`` package using your favourite tool (``virtualenvwrapper``,
+  ``venv``, ``pipenv``, etc.)
+- in the local repository, create a symlink for the ``pre-commit`` hook:
+
+  ``$ ln -s $(which dzonegit-pre-commit) /path/to/repo/.git/hooks/pre-commit``
+- on the server, install some git repository management software, preferrably Gitolite_
+- on the server, install either ``pre-receive`` or ``update`` hook (both do the same) as
+  well as ``post-receive`` hook. See `Gitolite documentation on how to add custom hooks`_
+- on the server set up the configuration options for each repository
 
 Configuration options
 ---------------------
@@ -144,3 +161,5 @@ Example JSON template for BIND
 
 .. _named-compilezone(8): https://linux.die.net/man/8/named-compilezone
 .. _git-config(1): https://linux.die.net/man/1/git-config
+.. _Gitolite: http://gitolite.com/gitolite/index.html
+.. _Gitolite documentation on how to add custom hooks: http://gitolite.com/gitolite/cookbook/#hooks
