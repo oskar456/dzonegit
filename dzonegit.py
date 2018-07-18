@@ -192,7 +192,7 @@ def get_zone_name(path, zonedata):
 
 def check_updated_zones(against, revision=None, autoupdate_serial=False):
     """ Check whether all updated zone files compile. """
-    for f in get_altered_files(against, "AM", revision):
+    for f in get_altered_files(against, "AMCR", revision):
         if not f.suffix == ".zone":
             continue
         print("Checking file {f}".format(f=f))
