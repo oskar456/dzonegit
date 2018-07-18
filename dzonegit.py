@@ -3,6 +3,7 @@
 import os
 import sys
 import subprocess
+import shlex
 import re
 import time
 import datetime
@@ -399,30 +400,33 @@ def post_receive(stdin=sys.stdin):
     added or delefed.
     """
     suffixes = list(str(n) if n else "" for n in range(10))
-    checkoutpath = get_config("dzonegit.checkoutpath")
     blacklist = load_set_file(get_config("dzonegit.zoneblacklist"))
     whitelist = load_set_file(get_config("dzonegit.zonewhitelist"))
-    if checkoutpath:
-        print("Checking out repository into {}…".format(checkoutpath))
-        subprocess.run(
-            ["git", "checkout", "-f", "master"],
-            check=True,
-            env=dict(os.environ, GIT_WORK_TREE=checkoutpath),
+    checkoutpath = get_config("dzonegit.checkoutpath")
+    if not checkoutpath:
+        raise SystemExit("Checkout path not defined. Nothing to do.")
+
+    print("Checking out repository into {}…".format(checkoutpath))
+    subprocess.run(
+        ["git", "checkout", "-f", "master"],
+        check=True,
+        env=dict(os.environ, GIT_WORK_TREE=checkoutpath),
+        stderr=subprocess.DEVNULL,
+    )
+    for s in suffixes:
+        cfpath = get_config("dzonegit.conffilepath{}".format(s))
+        tplpath = get_config("dzonegit.conffiletemplate{}".format(s))
+        if cfpath is None or tplpath is None:
+            continue
+        print("Templating config file {}…".format(cfpath))
+        Path(cfpath).write_text(
+            template_config(
+                checkoutpath,
+                Path(tplpath).read_text(),
+                blacklist=blacklist,
+                whitelist=whitelist,
+            ),
         )
-        for s in suffixes:
-            cfpath = get_config("dzonegit.conffilepath{}".format(s))
-            tplpath = get_config("dzonegit.conffiletemplate{}".format(s))
-            if cfpath is None or tplpath is None:
-                continue
-            print("Templating config file {}…".format(cfpath))
-            Path(cfpath).write_text(
-                template_config(
-                    checkoutpath,
-                    Path(tplpath).read_text(),
-                    blacklist=blacklist,
-                    whitelist=whitelist,
-                ),
-            )
 
     if stdin.isatty():
         raise SystemExit(
@@ -435,7 +439,33 @@ def post_receive(stdin=sys.stdin):
             continue
         if against == "0000000000000000000000000000000000000000":
             against = get_head()  # Empty commit
-        # TODO reloads
+        should_reconfig = [
+            f for f in get_altered_files(against, "ACDRU", revision)
+            if f.suffix == ".zone"
+        ]
+        zones_to_reload = [
+            get_zone_name(f, (checkoutpath / f).read_bytes())
+            for f in get_altered_files(against, "M", revision)
+            if f.suffix == ".zone"
+        ]
+        if should_reconfig:
+            print("Zone list change detected, reloading configuration")
+            for s in suffixes:
+                reconfigcmd = get_config("dzonegit.reconfigcmd{}".format(s))
+                if reconfigcmd:
+                    print("Calling {}…".format(reconfigcmd))
+                    subprocess.run(reconfigcmd, shell=True)
+
+        for z in zones_to_reload:
+            for s in suffixes:
+                zonereloadcmd = get_config(
+                    "dzonegit.zonereloadcmd{}".format(s),
+                )
+                if zonereloadcmd:
+                    cmd = shlex.split(zonereloadcmd)
+                    cmd.append(z)
+                    print("Calling {}…".format(" ".join(cmd)))
+                    subprocess.run(cmd)
 
 
 def main():

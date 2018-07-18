@@ -261,7 +261,10 @@ def test_update(git_dir):
 
 def test_pre_receive(git_dir):
     git_dir.chdir()
-    revisions = "{} {} ".format("0"*40, dzonegit.get_head())
+    revisions = "{} {} ".format(
+        "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+        dzonegit.get_head(),
+    )
     stdin = StringIO(revisions + "refs/heads/slave\n")
     with pytest.raises(SystemExit):
         dzonegit.pre_receive(stdin)
@@ -271,12 +274,21 @@ def test_pre_receive(git_dir):
 
 def test_post_receive(git_dir):
     git_dir.chdir()
-    revisions = "{} {} ".format("0"*40, dzonegit.get_head())
-    stdin = StringIO(revisions + "refs/heads/master\n")
+    head = dzonegit.get_head()
+    revisions = "{} {} refs/heads/master\n".format(
+        "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+        head,
+    )
+    stdin = StringIO(revisions)
     codir = git_dir.mkdir("co")
     subprocess.call(["git", "config", "dzonegit.checkoutpath", str(codir)])
+    subprocess.call([
+        "git", "config", "dzonegit.reconfigcmd",
+        "echo TEST >{}/test".format(codir),
+    ])
     dzonegit.post_receive(stdin)
     assert codir.join("dummy.zone").check()
+    assert codir.join("test").read() == "TEST\n"
 
 
 def test_template_config(git_dir):
