@@ -293,3 +293,15 @@ def test_template_config(git_dir):
     assert output.startswith("# Managed by dzonegit")
     assert " - zone: \"dummy\"\n   file: \"" in output
     assert output.endswith("# This is the end")
+    output = dzonegit.template_config(
+        str(git_dir),
+        template,
+        whitelist=set("a"),
+    )
+    assert " - zone: \"dummy\"\n   file: \"" not in output
+
+
+def test_load_set_file(git_dir):
+    git_dir.join("dummy").write("dummy\n\n # Comment")
+    s = dzonegit.load_set_file("dummy")
+    assert s == {"dummy"}

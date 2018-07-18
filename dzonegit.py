@@ -267,7 +267,7 @@ def replace_serial(path, oldserial, newserial):
     path.write_text(updated)
 
 
-def template_config(checkoutpath, template):
+def template_config(checkoutpath, template, blacklist=set(), whitelist=set()):
     """ Recursively find all *.zone files and template config file using
     a simple JSON based template like this:
 
@@ -300,6 +300,18 @@ def template_config(checkoutpath, template):
     out.append(headertpl.substitute(mapping))
     for f in sorted(Path(checkoutpath).glob("**/*.zone")):
         zonename = get_zone_name(f, f.read_bytes())
+        if whitelist and zonename not in whitelist:
+            print(
+                "WARNING: Ignoring zone {} - not whitelisted for "
+                "this repository.".format(zonename),
+            )
+            continue
+        if zonename in blacklist:
+            print(
+                "WARNING: Ignoring zone {} - blacklisted for "
+                "this repository.".format(zonename),
+            )
+            continue
         if zonename in zones:
             print(
                 "WARNING: Duplicate zone file found for zone {}. "
@@ -317,6 +329,16 @@ def template_config(checkoutpath, template):
         ))
     out.append(footertpl.substitute(mapping))
     return "\n".join(out)
+
+
+def load_set_file(path):
+    if path is None:
+        return set()
+    with open(path) as inf:
+        return {
+            l.strip() for l in inf
+            if not l.strip().startswith("#") and len(l) > 1
+        }
 
 
 def do_commit_checks(against, revision=None, autoupdate_serial=False):
@@ -378,6 +400,8 @@ def post_receive(stdin=sys.stdin):
     """
     suffixes = list(str(n) if n else "" for n in range(10))
     checkoutpath = get_config("dzonegit.checkoutpath")
+    blacklist = load_set_file(get_config("dzonegit.zoneblacklist"))
+    whitelist = load_set_file(get_config("dzonegit.zonewhitelist"))
     if checkoutpath:
         print("Checking out repository into {}…".format(checkoutpath))
         subprocess.run(
@@ -392,7 +416,12 @@ def post_receive(stdin=sys.stdin):
                 continue
             print("Templating config file {}…".format(cfpath))
             Path(cfpath).write_text(
-                template_config(checkoutpath, Path(tplpath).read_text()),
+                template_config(
+                    checkoutpath,
+                    Path(tplpath).read_text(),
+                    blacklist=blacklist,
+                    whitelist=whitelist,
+                ),
             )
 
     if stdin.isatty():
