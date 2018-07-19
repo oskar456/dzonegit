@@ -138,9 +138,9 @@ Example JSON template for Knot DNS
 .. code-block:: json
 
     {
-      "header": "# Managed by dzonegit, do not edit.\n",
+      "header": "# Managed by dzonegit, do not edit.\nzone:",
       "footer": "",
-      "item": " - zone: \"$zonename\"\n   file: \"$zonefile\"\n   $zonevar\n",
+      "item": " - domain: \"$zonename\"\n   file: \"$zonefile\"\n   $zonevar\n",
       "defaultvar": "template: default",
       "zonevars": {
         "example.com": "template: signed"
