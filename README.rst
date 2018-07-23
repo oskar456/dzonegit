@@ -24,7 +24,7 @@ Requirements
 ------------
 
 - Python 3.5+
-- `named-compilezone(8)`_ (part of BIND9 package)
+- `named-compilezone(8)`_ (part of `bind9utils` package)
 - git
 
 
@@ -95,9 +95,14 @@ JSON template
 -------------
 
 The DNS server configuration snippets are generated using a simple JSON-based
-template. All keys are optional but please make sure the file is a valid
-JSON file. It is possible to define a zone-specific options, for instance for
-changing DNSSEC parameters per zone.
+template. All keys are optional but please make sure the file is a valid JSON
+file. It is possible to define a zone-specific options, for instance for
+changing DNSSEC parameters per zone. Those zone-specific options allow usage of
+wildcards; if exact match of zone name is not found, the leftmost label is
+substituted with `*`. If still no match is found, the leftmost label is dropped
+and the second one is again substituted with `*`. In the end, a single `*` is
+checked. Only if even this key is not found, the value of *defaultvar* is used
+as the zone-specific option.
 
 Valid keys are:
 
@@ -112,11 +117,14 @@ Valid keys are:
 
 *defaultvar*
   A string that would template variable ``$zonevar`` expand to if there is not
-  a zone-specific variable defined.
+  a zone-specific variable defined, nor any wildcard matched.
 
 *zonevars*
   An object mapping zone names (without the final dot) to a zone-specific
-  variable to which template variable ``$zonevar`` would expand to.
+  variable to which template variable ``$zonevar`` would expand to. Using
+  wildcards is possible by replacing the leftmost label with `*`. Ultimately,
+  a key with label `*` will match every single zone (making *defaultvar*
+  option litte bit pointless)
 
 In the template strings, these placeholders are supported:
 
@@ -143,7 +151,9 @@ Example JSON template for Knot DNS
       "item": " - domain: \"$zonename\"\n   file: \"$zonefile\"\n   $zonevar\n",
       "defaultvar": "template: default",
       "zonevars": {
-        "example.com": "template: signed"
+        "example.com": "template: signed",
+        "*.cz": "template: czdomains",
+        "*.in-addr.arpa": "template: ipv4reverse"
       }
     }
 

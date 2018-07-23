@@ -298,12 +298,14 @@ def test_template_config(git_dir):
   "item": " - zone: \"$zonename\"\n   file: \"$zonefile\"\n   $zonevar\n",
   "defaultvar": "template: default",
   "zonevars": {
-    "example.com": "template: signed"
+    "example.com": "template: signed",
+    "*": "template: dummy"
   }
 }"""
     output = dzonegit.template_config(str(git_dir), template)
     assert output.startswith("# Managed by dzonegit")
     assert " - zone: \"dummy\"\n   file: \"" in output
+    assert "   template: dummy" in output
     assert output.endswith("# This is the end")
     output = dzonegit.template_config(
         str(git_dir),
@@ -317,3 +319,10 @@ def test_load_set_file(git_dir):
     git_dir.join("dummy").write("dummy\n\n # Comment")
     s = dzonegit.load_set_file("dummy")
     assert s == {"dummy"}
+
+
+def test_get_zone_wildcards():
+    assert list(dzonegit.get_zone_wildcards("a.long.zone.name")) == [
+        "a.long.zone.name", "*.long.zone.name",
+        "*.zone.name", "*.name", "*",
+    ]

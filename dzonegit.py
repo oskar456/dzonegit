@@ -268,6 +268,23 @@ def replace_serial(path, oldserial, newserial):
     path.write_text(updated)
 
 
+def get_zone_wildcards(name):
+    """ A generator of wildcards out of a zone name.
+    For a DNS name, returns series of:
+     - the name itself
+     - the name with first label substitued as *
+     - the name with first label dropped and second substittuted as *
+     - ...
+     - single *
+"""
+    yield name
+    labels = name.split(".")
+    while labels:
+        labels[0] = "*"
+        yield ".".join(labels)
+        labels.pop(0)
+
+
 def template_config(checkoutpath, template, blacklist=set(), whitelist=set()):
     """ Recursively find all *.zone files and template config file using
     a simple JSON based template like this:
@@ -278,7 +295,9 @@ def template_config(checkoutpath, template, blacklist=set(), whitelist=set()):
       "item": " - zone: \"$zonename\"\n   file: \"$zonefile\"\n   $zonevar\n",
       "defaultvar": "template: default",
       "zonevars": {
-        "example.com": "template: signed"
+        "example.com": "template: signed",
+        "*.com": "template: dotcom",
+        "*": "template: uberdefault"
       }
     }
 
@@ -323,7 +342,12 @@ def template_config(checkoutpath, template, blacklist=set(), whitelist=set()):
             )
             continue
         zones[zonename] = f.relative_to(checkoutpath)
-        zonevar = zonevars[zonename] if zonename in zonevars else defaultvar
+        for name in get_zone_wildcards(zonename):
+            if name in zonevars:
+                zonevar = zonevars[name]
+                break
+        else:
+            zonevar = defaultvar
         out.append(itemtpl.substitute(
             mapping, zonename=zonename,
             zonefile=str(f), zonevar=zonevar,
