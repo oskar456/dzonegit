@@ -320,13 +320,16 @@ def template_config(checkoutpath, template, blacklist=set(), whitelist=set()):
     out.append(headertpl.substitute(mapping))
     for f in sorted(Path(checkoutpath).glob("**/*.zone")):
         zonename = get_zone_name(f, f.read_bytes())
-        if whitelist and zonename not in whitelist:
+        if whitelist and not any(
+                n in whitelist
+                for n in get_zone_wildcards(zonename)
+        ):
             print(
                 "WARNING: Ignoring zone {} - not whitelisted for "
                 "this repository.".format(zonename),
             )
             continue
-        if zonename in blacklist:
+        if any(n in blacklist for n in get_zone_wildcards(zonename)):
             print(
                 "WARNING: Ignoring zone {} - blacklisted for "
                 "this repository.".format(zonename),

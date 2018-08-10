@@ -84,12 +84,14 @@ All boolean options default to *False*.
 *dzonegit.zoneblacklist*
   Path to a text file containing list of zone names without trailing dots,
   one per line. If zone is found on the blacklist, it is ignored when
-  ``post-receive`` hook generates configuration.
+  ``post-receive`` hook generates configuration. Wildcards can be used as
+  well, see `JSON template`_ below.
 
 *dzonegit.zonewhitelist*
   Path to a text file containing list of zone names without trailing dots,
   one per line. If not empty and zone is not found on the whitelist,
-  it is ignored when ``post-receive`` hook generates configuration.
+  it is ignored when ``post-receive`` hook generates configuration. Wildcards
+  can be used as well, see `JSON template`_ below.
 
 JSON template
 -------------
@@ -98,7 +100,7 @@ The DNS server configuration snippets are generated using a simple JSON-based
 template. All keys are optional but please make sure the file is a valid JSON
 file. It is possible to define a zone-specific options, for instance for
 changing DNSSEC parameters per zone. Those zone-specific options allow usage of
-wildcards; if exact match of zone name is not found, the leftmost label is
+wildcards; if an exact match of zone name is not found, the leftmost label is
 substituted with `*`. If still no match is found, the leftmost label is dropped
 and the second one is again substituted with `*`. In the end, a single `*` is
 checked. Only if even this key is not found, the value of *defaultvar* is used

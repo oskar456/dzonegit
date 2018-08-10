@@ -313,6 +313,12 @@ def test_template_config(git_dir):
         whitelist=set("a"),
     )
     assert " - zone: \"dummy\"\n   file: \"" not in output
+    output = dzonegit.template_config(
+        str(git_dir),
+        template,
+        blacklist=set("*"),
+    )
+    assert " - zone: \"dummy\"\n   file: \"" not in output
 
 
 def test_load_set_file(git_dir):
