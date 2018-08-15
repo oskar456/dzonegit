@@ -495,17 +495,25 @@ def post_receive(stdin=sys.stdin):
                     subprocess.run(cmd)
 
 
+def get_action(argv=sys.argv):
+    name = Path(argv[0]).name
+    if "pre-commit" in name:
+        return pre_commit
+    if "update" in name:
+        return update
+    if "pre-receive" in name:
+        return pre_receive
+    if "post-receive" in name:
+        return post_receive
+
+
 def main():
-    name = Path(sys.argv[0]).name
-    print(name)
-    if name == "pre-commit":
-        pre_commit()
-    elif name == "update":
-        update()
-    elif name == "pre-receive":
-        pre_receive()
-    elif name == "post-receive":
-        post_receive()
+    action = get_action()
+    if action is None and len(sys.argv) > 1:
+        sys.argv.pop(0)
+        action = get_action()
+    if action:
+        action()
     else:
         sys.exit("No valid command found")
 
