@@ -17,7 +17,7 @@ Main features
 - enforce updating serial number when zone content is changed
 - both ``pre-commit`` and ``pre-receive``/``update`` hooks to enforce similar checks in the remote repository
 - ``post-receive`` hook to checkout the working copy from a bare repository, generate config snippets for various DNS server software and reload them
-- only Python standard library is used
+- only Python 3.5+ standard library is used
 
 
 Requirements
@@ -28,25 +28,36 @@ Requirements
 - git
 
 
-Instalation and usage
----------------------
+Simple instalation (especially for workstations)
+------------------------------------------------
 
-- install required dependencies
-- install ``dzonegit`` package using your favourite tool (``virtualenvwrapper``,
-  ``venv``, ``pipenv``, etc.)
+Since there is no other Python dependency than the standard library, you can
+simply download the `dzonegit.py` file, make it executable and rename/symlink
+it to an appropriate hook location inside the Git repository
+`.git/hooks/pre-commit`. This is especially handy for the end users not
+experienced with Python packaging ecosystem.
+
+
+Full instalation and usage
+--------------------------
+
+- install all the requirements
+- install ``dzonegit`` Python package using your
+  favourite tool (``virtualenvwrapper``, ``venv``, ``pipenv``, etc.)
 - in the local repository, create a symlink for the ``pre-commit`` hook:
-
   ``$ ln -s $(which dzonegit-pre-commit) /path/to/repo/.git/hooks/pre-commit``
-- on the server, install some git repository management software, preferrably Gitolite_
-- on the server, install either ``pre-receive`` or ``update`` hook (both do the same) as
-  well as ``post-receive`` hook. See `Gitolite documentation on how to add custom hooks`_
-- on the server set up the configuration options for each repository
+- on the server, install some git repository management software,
+  preferably Gitolite_
+- on the server, install either ``pre-receive`` or ``update`` hook
+  (both do the same) as  well as the ``post-receive`` hook. See `Gitolite
+  documentation on how to add custom hooks`_
+- on the server, set up the configuration options for each repository
 
 Configuration options
 ---------------------
 
-All configuration options are stored in `git-config(1)`_ in section named ``dzonegit``.
-All boolean options default to *False*.
+All configuration options are stored in `git-config(1)`_ in the section
+named ``dzonegit``.  All boolean options default to *False*.
 
 
 *dzonegit.ignorewhitespaceerrors*
@@ -76,7 +87,7 @@ All boolean options default to *False*.
   can be provided by appending single digit from 1 to 9 to this option.
 
 *dzonegit.zonereloadcmd*
-  A command to run for each zone, whose zone file has been modified. Zone
+  A command to run for each zone, where zone file has been modified. Zone
   name is automatically appended as the last argument. Should do something
   like ``rndc reload``. More commands can be provided by appending single digit
   from 1 to 9 to this option.
@@ -131,10 +142,10 @@ Valid keys are:
 In the template strings, these placeholders are supported:
 
 ``$datetime``
-  Current timestamp
+  Current date and time in human readable format
 
 ``$zonename``
-  Zone name, without trailing dot
+  Zone name, without the trailing dot
 
 ``$zonefile``
   Full path to the zone file
