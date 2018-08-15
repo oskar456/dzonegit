@@ -493,3 +493,22 @@ def post_receive(stdin=sys.stdin):
                     cmd.append(z)
                     print("Calling {}…".format(" ".join(cmd)))
                     subprocess.run(cmd)
+
+
+def main():
+    name = Path(sys.argv[0]).name
+    print(name)
+    if name == "pre-commit":
+        pre_commit()
+    elif name == "update":
+        update()
+    elif name == "pre-receive":
+        pre_receive()
+    elif name == "post-receive":
+        post_receive()
+    else:
+        sys.exit("No valid command found")
+
+
+if __name__ == "__main__":
+    main()

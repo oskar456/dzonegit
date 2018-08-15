@@ -19,6 +19,7 @@ setup(
     tests_require=["pytest"],
     entry_points={
             "console_scripts": [
+                "dzonegit = dzonegit:main",
                 "dzonegit-pre-commit = dzonegit:pre_commit",
                 "dzonegit-pre-receive = dzonegit:pre_receive",
                 "dzonegit-post-receive = dzonegit:post_receive",
