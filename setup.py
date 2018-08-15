@@ -5,7 +5,7 @@ readme = Path(__file__).with_name("README.rst").read_text()
 
 setup(
     name="dzonegit",
-    version="0.3",
+    version="0.4",
     description="Git hooks to manage a repository of DNS zones",
     long_description=readme,
     long_description_content_type="text/x-rst",
