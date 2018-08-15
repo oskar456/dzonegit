@@ -14,9 +14,6 @@ from pathlib import Path
 from string import Template
 
 
-SERIAL_SMUDGE_TAG = "DZONEGIT_DO_NOT_CHANGE_OLD_SERIAL_"
-
-
 class HookException(ValueError):
     """Exception raised when there is an error in input data.
 
@@ -496,32 +493,3 @@ def post_receive(stdin=sys.stdin):
                     cmd.append(z)
                     print("Calling {}…".format(" ".join(cmd)))
                     subprocess.run(cmd)
-
-
-def clean_serial(stdin=sys.stdin):
-    """ Git filter command to replace smudged serial with an increased one. """
-    for line in stdin:
-        m = re.search(
-            r"(\s){}([0-9]+)(\s)".format(SERIAL_SMUDGE_TAG),
-            line,
-        )
-        if m:
-            oldserial = m.group(2)
-            newserial = get_increased_serial(oldserial)
-            line = line.replace(SERIAL_SMUDGE_TAG + oldserial, newserial)
-        print(line, end="")
-
-
-def smudge_serial(stdin=sys.stdin):
-    """ Git filter command to smudge SOA serial number. """
-    sys.stderr.write("Smudging {}…\n".format(sys.argv))
-    zonedata = stdin.read()
-    if SERIAL_SMUDGE_TAG not in zonedata:
-        zonedata = re.sub(
-            r'(^.*\sSOA\s.+?\s)([0-9]+[^0-9])',
-            r'\g<1>{}\g<2>'.format(SERIAL_SMUDGE_TAG),
-            zonedata,
-            count=1,
-            flags=re.DOTALL | re.IGNORECASE | re.MULTILINE,
-        )
-    print(zonedata, end="")
