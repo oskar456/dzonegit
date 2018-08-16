@@ -280,13 +280,14 @@ def test_post_receive(git_dir):
         head,
     )
     stdin = StringIO(revisions)
-    codir = git_dir.mkdir("co")
+    codir = git_dir.join("co")
     subprocess.call(["git", "config", "dzonegit.checkoutpath", str(codir)])
     subprocess.call([
         "git", "config", "dzonegit.reconfigcmd",
         "echo TEST >{}/test".format(codir),
     ])
     dzonegit.post_receive(stdin)
+    dzonegit.post_receive(stdin)  # Check coping with existing codir
     assert codir.join("dummy.zone").check()
     assert codir.join("test").read() == "TEST\n"
 

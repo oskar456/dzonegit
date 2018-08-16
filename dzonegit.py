@@ -434,6 +434,7 @@ def post_receive(stdin=sys.stdin):
         raise SystemExit("Checkout path not defined. Nothing to do.")
 
     print("Checking out repository into {}…".format(checkoutpath))
+    Path(checkoutpath).mkdir(parents=True, exist_ok=True)
     subprocess.run(
         ["git", "checkout", "-f", "master"],
         check=True,
