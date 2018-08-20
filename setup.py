@@ -23,6 +23,7 @@ setup(
                 "dzonegit-pre-receive = dzonegit:pre_receive",
                 "dzonegit-post-receive = dzonegit:post_receive",
                 "dzonegit-update = dzonegit:update",
+                "dzonegit-smudge-serial = dzonegit:smudge_serial",
             ],
     },
     classifiers=[

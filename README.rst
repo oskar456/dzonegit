@@ -15,6 +15,7 @@ Main features
 - check if zone file compiles properly using `named-compilezone(8)`_
 - autodetect zone name from file name or ``$ORIGIN`` directive
 - enforce updating serial number when zone content is changed
+- optional ``smudge`` filter to replace ``$UNIXTIME`` directive with current UNIX time
 - both ``pre-commit`` and ``pre-receive``/``update`` hooks to enforce similar checks in the remote repository
 - ``post-receive`` hook to checkout the working copy from a bare repository, generate config snippets for various DNS server software and reload them
 - only Python 3.5+ standard library is used
@@ -52,6 +53,29 @@ Full instalation and usage
   (both do the same) as  well as the ``post-receive`` hook. See `Gitolite
   documentation on how to add custom hooks`_
 - on the server, set up the configuration options for each repository
+
+Support for $UNIXTIME directive
+-------------------------------
+
+If you want to use ``$UNIXTIME`` in your zone files instead of serial number,
+you have to install a `smudge` filter on the server, that will replace the
+directive with current unix time on checkout. First, set up the filter in
+the Git configuration:
+
+.. code-block:: shell
+
+        $ git config --global filter.dzonegit.smudge $(which dzonegit-smudge-serial)
+        $ git config --global filter.dzonegit.clean cat
+
+
+Then, apply the filter on all zone files using ``.gitattributes`` file inside
+the repository:
+
+.. code-block::
+
+        *.zone filter=dzonegit
+
+
 
 Configuration options
 ---------------------

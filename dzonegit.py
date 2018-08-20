@@ -509,6 +509,15 @@ def post_receive(stdin=sys.stdin):
                     subprocess.run(cmd)
 
 
+def smudge_serial(
+        bstdin=sys.stdin.buffer,
+        bstdout=sys.stdout.buffer,
+        unixtime=None,
+):
+    """Replace all $UNIXTIME directives with current unix time."""
+    bstdout.write(unixtime_directive(bstdin.read(), unixtime))
+
+
 def get_action(argv=sys.argv):
     name = Path(argv[0]).name
     if "pre-commit" in name:
@@ -519,6 +528,8 @@ def get_action(argv=sys.argv):
         return pre_receive
     if "post-receive" in name:
         return post_receive
+    if "smudge" in name:
+        return smudge_serial
 
 
 def main():

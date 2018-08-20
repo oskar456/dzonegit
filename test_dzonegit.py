@@ -4,7 +4,7 @@ import subprocess
 import time
 import datetime
 import os
-from io import StringIO
+from io import StringIO, BytesIO
 from pathlib import Path
 
 import dzonegit
@@ -92,6 +92,13 @@ ns.example.com.      60 IN A 192.0.2.1
     r = dzonegit.compile_zone("example.com", testzone, 123456)
     assert r.success
     assert r.serial == str(123456)
+
+
+def test_smudge_serial():
+    bstdin = BytesIO(b"something $UNIXTIME something")
+    bstdout = BytesIO()
+    dzonegit.smudge_serial(bstdin, bstdout, 123456)
+    assert b"something 123456 something" == bstdout.getvalue()
 
 
 def test_is_serial_increased():
