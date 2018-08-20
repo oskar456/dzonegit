@@ -328,7 +328,7 @@ def test_post_receive(git_dir):
     git_dir.chdir()
     head = dzonegit.get_head()
     revisions = "{} {} refs/heads/master\n".format(
-        "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+        "0000000000000000000000000000000000000000",
         head,
     )
     stdin = StringIO(revisions)

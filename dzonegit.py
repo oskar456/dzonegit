@@ -479,7 +479,8 @@ def post_receive(stdin=sys.stdin):
         if refname != "refs/heads/master":
             continue
         if against == "0000000000000000000000000000000000000000":
-            against = get_head()  # Empty commit
+            # Empty commit
+            against = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
         should_reconfig = [
             f for f in get_altered_files(against, "ACDRU", revision)
             if f.suffix == ".zone"
