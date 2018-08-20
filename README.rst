@@ -63,6 +63,10 @@ named ``dzonegit``.  All boolean options default to *False*.
 *dzonegit.ignorewhitespaceerrors*
   Ignore white space errors in ``pre-commit`` and ``pre-receive``/``update`` hooks.
 
+*dzonegit.allowfancynames*
+  In  ``pre-commit`` and ``pre-receive``/``update`` hooks, do not enforce zone
+  file name to be similar to the name of the zone.
+
 *dzonegit.noserialupdate*
   Do not try to automatically update zone serial number if necessary.
   Valid only in the ``pre-commit`` hook.

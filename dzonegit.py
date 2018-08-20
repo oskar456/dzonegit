@@ -173,15 +173,15 @@ def get_zone_origin(zonedata):
 def get_zone_name(path, zonedata):
     """
     Try to guess zone name from either filename or the first $ORIGIN.
-    Throw a HookException if filename and zone ORIGIN differ more than
-    in slashes.
+    Unless disabled, throw a HookException if filename and zone ORIGIN differ
+    more than in slashes.
     """
     stemname = Path(path).stem.lower()
     originname = get_zone_origin(zonedata)
     if originname:
         tt = str.maketrans("", "", "/_,:-+*%^&#$")
         sn, on = [s.translate(tt) for s in [stemname, originname]]
-        if sn != on:
+        if sn != on and not get_config("dzonegit.allowfancynames", bool):
             raise HookException(
                 "Zone origin {o} differs from zone file.".format(o=originname),
                 fname=path,

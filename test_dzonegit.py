@@ -131,6 +131,8 @@ ns.example.com.      60 IN A 192.0.2.1
     )
     with pytest.raises(ValueError):
         dzonegit.get_zone_name("zones/example.org.zone", testzone)
+    subprocess.call(["git", "config", "dzonegit.allowfancynames", "TRUE"])
+    dzonegit.get_zone_name("zones/example.org.zone", testzone)
     testzone = b"""
 $ORIGIN 240/28.2.0.192.in-addr.arpa.
 @       60 IN SOA ns hostmaster 1 60 60 60 60
