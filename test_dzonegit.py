@@ -74,6 +74,26 @@ ns.example.com.      60 IN A 192.0.2.1
     assert r.zonehash == r2.zonehash
 
 
+def test_compile_unsmudged_zone():
+    testzone = b"""
+$ORIGIN example.com.
+@       60 IN SOA ns hostmaster (
+                                $UNIXTIME  ; serial
+                                3600       ; refresh (1 hour)
+                                900        ; retry (15 minutes)
+                                1814400    ; expire (3 weeks)
+                                60         ; minimum (1 minute)
+                                )
+        60 IN NS ns
+ns.example.com.      60 IN A 192.0.2.1
+"""
+    replaced = dzonegit.unixtime_directive(testzone)
+    assert b"$UNIXTIME" not in replaced
+    r = dzonegit.compile_zone("example.com", testzone, 123456)
+    assert r.success
+    assert r.serial == str(123456)
+
+
 def test_is_serial_increased():
     assert dzonegit.is_serial_increased(1234567890, "2018010100")
     assert dzonegit.is_serial_increased("2018010100", "4018010100")
@@ -226,6 +246,29 @@ $ORIGIN dummy.
     subprocess.call(["git", "add", "dummy.zone"])
     with pytest.raises(ValueError):
         dzonegit.check_updated_zones("HEAD", autoupdate_serial=True)
+    subprocess.call(["git", "add", "dummy.zone"])
+    dzonegit.check_updated_zones(dzonegit.get_head())
+    git_dir.join("dummy.zone").write("""
+$ORIGIN dummy.
+@ 60 IN SOA ns hm $UNIXTIME 61 60 60 60
+  60 NS ns.example.org.
+""")
+    subprocess.call(["git", "add", "dummy.zone"])
+    dzonegit.check_updated_zones(dzonegit.get_head())
+    subprocess.call(["git", "commit", "-m", "dummy.zone with $UNIXTIME"])
+    git_dir.join("dummy.zone").write("""
+$ORIGIN dummy.
+@ 60 IN SOA ns hm 1 60 60 60 60
+  60 NS ns.example.org.
+""")
+    subprocess.call(["git", "add", "dummy.zone"])
+    with pytest.raises(ValueError):
+        dzonegit.check_updated_zones(dzonegit.get_head())
+    git_dir.join("dummy.zone").write("""
+$ORIGIN dummy.
+@ 60 IN SOA ns hm $UNIXTIME 60 60 60 60
+  60 NS ns.example.org.
+""")
     subprocess.call(["git", "add", "dummy.zone"])
     dzonegit.check_updated_zones(dzonegit.get_head())
     subprocess.call(["git", "commit", "-m", "final dummy.zone"])

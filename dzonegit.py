@@ -83,14 +83,26 @@ def get_file_contents(path, revision=None):
     return r.stdout
 
 
-def compile_zone(zonename, zonedata):
+def unixtime_directive(zonedata, unixtime=None):
+    """ Filter binary zone data. Replace $UNIXTIME with current unix time. """
+    if unixtime is None:
+        unixtime = int(time.time())
+    return re.sub(
+        br'\$UNIXTIME\b',
+        str(unixtime).encode("ascii"),
+        zonedata,
+        flags=re.IGNORECASE,
+    )
+
+
+def compile_zone(zonename, zonedata, unixtime=None):
     """ Compile the zone. Return tuple with results."""
     CompileResults = namedtuple(
         "CompileResults", "success, serial, zonehash, stderr",
     )
     r = subprocess.run(
         ["/usr/sbin/named-compilezone", "-o", "-", zonename, "/dev/stdin"],
-        input=zonedata,
+        input=unixtime_directive(zonedata, unixtime),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -193,13 +205,14 @@ def get_zone_name(path, zonedata):
 
 def check_updated_zones(against, revision=None, autoupdate_serial=False):
     """ Check whether all updated zone files compile. """
+    unixtime = int(time.time())
     for f in get_altered_files(against, "AMCR", revision):
         if not f.suffix == ".zone":
             continue
         print("Checking file {f}".format(f=f))
         zonedata = get_file_contents(f, revision)
         zname = get_zone_name(f, zonedata)
-        rnew = compile_zone(zname, zonedata)
+        rnew = compile_zone(zname, zonedata, unixtime)
         if not rnew.success:
             raise HookException(
                 "New zone version does not compile",
@@ -208,7 +221,7 @@ def check_updated_zones(against, revision=None, autoupdate_serial=False):
         try:
             zonedata = get_file_contents(f, against)
             zname = get_zone_name(f, zonedata)
-            rold = compile_zone(zname, zonedata)
+            rold = compile_zone(zname, zonedata, unixtime-1)
 
             if (rold.success and rold.zonehash != rnew.zonehash and not
                     is_serial_increased(rold.serial, rnew.serial)):
