@@ -59,22 +59,20 @@ Support for $UNIXTIME directive
 
 If you want to use ``$UNIXTIME`` in your zone files instead of serial number,
 you have to install a `smudge` filter on the server, that will replace the
-directive with current unix time on checkout. First, set up the filter in
-the Git configuration:
+directive with current unix time on every checkout. First, set up the filter
+in the Git configuration:
 
 .. code-block:: shell
 
         $ git config --global filter.dzonegit.smudge $(which dzonegit-smudge-serial)
-        $ git config --global filter.dzonegit.clean cat
 
 
-Then, apply the filter on all zone files using ``.gitattributes`` file inside
-the repository:
+Then, apply the filter on all zone files using either ``.git/info/attributes``
+or directly ``.gitattributes`` file inside the repository:
 
 .. code-block::
 
         *.zone filter=dzonegit
-
 
 
 Configuration options
