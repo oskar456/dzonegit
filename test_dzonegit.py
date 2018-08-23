@@ -177,12 +177,12 @@ def test_replace_serial(git_dir):
 @ 60 IN SOA ns hm 1 61 60 60 60
   60 NS ns.example.org.
 """)
-    dzonegit.replace_serial(Path("dummy.zone"), "1", "60")
+    assert dzonegit.replace_serial(Path("dummy.zone"), "1", "60")
     assert git_dir.join("dummy.zone").read() == """
 @ 60 IN SOA ns hm 60 61 60 60 60
   60 NS ns.example.org.
 """
-    dzonegit.replace_serial(Path("dummy.zone"), "60", "61")
+    assert dzonegit.replace_serial(Path("dummy.zone"), "60", "61")
     assert git_dir.join("dummy.zone").read() == """
 @ 60 IN SOA ns hm 61 61 60 60 60
   60 NS ns.example.org.
@@ -197,7 +197,7 @@ def test_replace_serial(git_dir):
                 )
   60 NS ns.example.org.
 """)
-    dzonegit.replace_serial(Path("dummy.zone"), "60", "6000000")
+    assert dzonegit.replace_serial(Path("dummy.zone"), "60", "6000000")
     assert git_dir.join("dummy.zone").read() == """
 @ 60 IN SOA ns hm (
                 6000000 ; serial
@@ -208,6 +208,7 @@ def test_replace_serial(git_dir):
                 )
   60 NS ns.example.org.
 """
+    assert not dzonegit.replace_serial(Path("dummy.zone"), "0", "60")
 
 
 def test_check_updated_zones(git_dir):

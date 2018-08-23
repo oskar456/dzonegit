@@ -232,9 +232,11 @@ def check_updated_zones(against, revision=None, autoupdate_serial=False):
 
                 if autoupdate_serial:
                     newserial = get_increased_serial(rnew.serial)
-                    replace_serial(f, rnew.serial, newserial)
-                    errmsg += " Serial has been automatically increased."
-                    errmsg += " Check and recommit."
+                    if replace_serial(f, rnew.serial, newserial):
+                        errmsg += " Serial has been automatically increased."
+                        errmsg += " Check and recommit."
+                    else:
+                        errmsg += " Autoupdate of serial number failed."
                 raise HookException(
                     errmsg,
                     fname=f,
@@ -277,8 +279,9 @@ def replace_serial(path, oldserial, newserial):
         flags=re.DOTALL | re.IGNORECASE | re.MULTILINE,
     )
     if count != 1:
-        raise HookException("Cannot update zone serial number")
+        return False
     path.write_text(updated)
+    return True
 
 
 def get_zone_wildcards(name):
