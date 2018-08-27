@@ -340,8 +340,18 @@ def test_post_receive(git_dir):
         "echo TEST >{}/test".format(codir),
     ])
     dzonegit.post_receive(stdin)
-    dzonegit.post_receive(stdin)  # Check coping with existing codir
     assert codir.join("dummy.zone").check()
+    assert codir.join("test").read() == "TEST\n"
+    # Test reconfig after renaming the file
+    codir.join("test").write("")
+    subprocess.call(["git", "mv", "dummy.zone", "dummy.zone.old"])
+    subprocess.call(["git", "commit", "-m", "rename dummy zone"])
+    revisions = "{} {} refs/heads/master\n".format(
+        head,
+        dzonegit.get_head(),
+    )
+    stdin = StringIO(revisions)
+    dzonegit.post_receive(stdin)
     assert codir.join("test").read() == "TEST\n"
 
 

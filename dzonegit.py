@@ -146,7 +146,7 @@ def get_altered_files(against, diff_filter=None, revision=None):
         If revision is None, list changes between staging area and
         revision. Otherwise differences between two revisions are computed.
     """
-    cmd = ["git", "diff", "--name-only", "-z"]
+    cmd = ["git", "diff", "--name-only", "-z", "--no-renames"]
     if diff_filter:
         cmd.append("--diff-filter={}".format(diff_filter))
     if revision:
