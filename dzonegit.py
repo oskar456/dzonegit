@@ -41,17 +41,17 @@ class HookException(ValueError):
         return "".join(r)
 
 
-def get_head():
-    r = subprocess.run(
-        ["git", "rev-parse", "--verify", "HEAD"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
-    )
-    if r.returncode == 0:
-        return r.stdout.decode("utf-8").strip()
-    else:
-        # Initial commit: diff against an empty tree object
-        return "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+def get_head(empty=False):
+    if not empty:
+        r = subprocess.run(
+            ["git", "rev-parse", "--verify", "HEAD"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
+        if r.returncode == 0:
+            return r.stdout.decode("ascii").strip()
+    # Initial commit: diff against an empty tree object
+    return "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 
 
 def check_whitespace_errors(against, revision=None):
@@ -414,7 +414,7 @@ def update(argv=sys.argv):
     refname, against, revision = argv[1:4]
 
     if against == "0000000000000000000000000000000000000000":
-        against = get_head()  # Empty commit
+        against = get_head(True)  # Empty commit
 
     if refname != "refs/heads/master":
         raise SystemExit("Nothing else than master branch is accepted here")
@@ -432,7 +432,7 @@ def pre_receive(stdin=sys.stdin):
                 "is accepted here",
             )
         if against == "0000000000000000000000000000000000000000":
-            against = get_head()  # Empty commit
+            against = get_head(True)  # Empty commit
         do_commit_checks(against, revision)
 
 
@@ -482,8 +482,7 @@ def post_receive(stdin=sys.stdin):
         if refname != "refs/heads/master":
             continue
         if against == "0000000000000000000000000000000000000000":
-            # Empty commit
-            against = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+            against = get_head(True)  # Empty commit
         should_reconfig = [
             f for f in get_altered_files(against, "ACDRU", revision)
             if f.suffix == ".zone"
