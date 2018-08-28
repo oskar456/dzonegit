@@ -62,16 +62,20 @@ $ORIGIN example.com.
         60 IN NS ns
 ns.example.com.      60 IN A 192.0.2.1
 """
-    r = dzonegit.compile_zone("example.org", testzone)
+    r = dzonegit.compile_zone("example.org", testzone, missing_dot=True)
     assert not r.success
     assert r.zonehash is None
     assert r.stderr
-    r = dzonegit.compile_zone("example.com", testzone)
+    r = dzonegit.compile_zone("example.com", testzone, missing_dot=True)
     assert r.success
     assert r.serial == "1234567890"
     assert r.zonehash
     r2 = dzonegit.compile_zone("example.com", testzone + b"\n\n; some comment")
     assert r.zonehash == r2.zonehash
+    testzone += b"1 60 IN PTR www\n"
+    dzonegit.compile_zone("example.com", testzone, missing_dot=False)
+    with pytest.raises(ValueError):
+        dzonegit.compile_zone("example.com", testzone, missing_dot=True)
 
 
 def test_compile_unsmudged_zone():
@@ -396,3 +400,10 @@ def test_get_zone_wildcards():
         "a.long.zone.name", "*.long.zone.name",
         "*.zone.name", "*.name", "*",
     ]
+
+
+def test_missing_trailing_dot():
+    zonename = "example.com"
+    zonedata = b"something.example.com. IN PTR s.example.com."
+    with pytest.raises(ValueError):
+        dzonegit.check_missing_trailing_dot(zonename, zonedata)

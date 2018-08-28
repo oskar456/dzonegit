@@ -95,7 +95,25 @@ def unixtime_directive(zonedata, unixtime=None):
     )
 
 
-def compile_zone(zonename, zonedata, unixtime=None):
+def check_missing_trailing_dot(zonename, compiled_zonedata):
+    badlines = []
+    for line in compiled_zonedata.splitlines():
+        if re.search(
+                r"\sPTR\s+[^\s]*\.{}.$".format(zonename).encode("ascii"),
+                line,
+                re.I,
+        ):
+            badlines.append(line.decode("utf-8"))
+    if badlines:
+        raise HookException(
+            "Possibly missing trailing dot after PTR records:\n{}".format(
+                "\n".join(badlines),
+            ),
+            fname=zonename,
+        )
+
+
+def compile_zone(zonename, zonedata, unixtime=None, missing_dot=False):
     """ Compile the zone. Return tuple with results."""
     CompileResults = namedtuple(
         "CompileResults", "success, serial, zonehash, stderr",
@@ -110,6 +128,8 @@ def compile_zone(zonename, zonedata, unixtime=None):
     m = re.search(r"^zone.*loaded serial ([0-9]*)$", stderr, re.MULTILINE)
     if r.returncode == 0 and m:
         serial = m.group(1)
+        if missing_dot:
+            check_missing_trailing_dot(zonename, r.stdout)
         zonehash = sha256(r.stdout).hexdigest()
         return CompileResults(True, serial, zonehash, stderr)
     else:
@@ -203,7 +223,12 @@ def get_zone_name(path, zonedata):
         return stemname
 
 
-def check_updated_zones(against, revision=None, autoupdate_serial=False):
+def check_updated_zones(
+        against,
+        revision=None,
+        autoupdate_serial=False,
+        missing_dot=False,
+):
     """ Check whether all updated zone files compile. """
     unixtime = int(time.time())
     for f in get_altered_files(against, "AMCR", revision):
@@ -212,7 +237,7 @@ def check_updated_zones(against, revision=None, autoupdate_serial=False):
         print("Checking file {f}".format(f=f))
         zonedata = get_file_contents(f, revision)
         zname = get_zone_name(f, zonedata)
-        rnew = compile_zone(zname, zonedata, unixtime)
+        rnew = compile_zone(zname, zonedata, unixtime, missing_dot)
         if not rnew.success:
             raise HookException(
                 "New zone version does not compile",
@@ -385,13 +410,19 @@ def load_set_file(path):
         }
 
 
-def do_commit_checks(against, revision=None, autoupdate_serial=False):
+def do_commit_checks(
+        against,
+        revision=None,
+        autoupdate_serial=False,
+        missing_dot=False,
+):
     try:
         if not get_config("dzonegit.ignorewhitespaceerrors", bool):
             check_whitespace_errors(against, revision=revision)
         check_updated_zones(
             against, revision=revision,
             autoupdate_serial=autoupdate_serial,
+            missing_dot=missing_dot,
         )
     except HookException as e:
         print(e)
@@ -401,7 +432,12 @@ def do_commit_checks(against, revision=None, autoupdate_serial=False):
 def pre_commit():
     against = get_head()
     autoupdate_serial = not get_config("dzonegit.noserialupdate", bool)
-    do_commit_checks(against, autoupdate_serial=autoupdate_serial)
+    missing_dot = not get_config("dzonegit.nomissingdotcheck", bool)
+    do_commit_checks(
+        against,
+        autoupdate_serial=autoupdate_serial,
+        missing_dot=missing_dot,
+    )
 
 
 def update(argv=sys.argv):

@@ -93,6 +93,10 @@ named ``dzonegit``.  All boolean options default to *False*.
   Do not try to automatically update zone serial number if necessary.
   Valid only in the ``pre-commit`` hook.
 
+*dzonegit.nomissingdotcheck*
+  Do not check for forgotten final dot on the right-hand side of PTR records.
+  Valid only in the ``pre-commit`` hook.
+
 *dzonegit.checkoutpath*
   Path to a writable directory, to which ``post-receive`` hook checks out
   current *HEAD* after each update.
