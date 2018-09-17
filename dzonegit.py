@@ -358,7 +358,8 @@ def template_config(checkoutpath, template, blacklist=set(), whitelist=set()):
     out = list()
     zones = dict()
     mapping = {"datetime": datetime.datetime.now().strftime("%c")}
-    out.append(headertpl.substitute(mapping))
+    if headertpl.template:
+        out.append(headertpl.substitute(mapping))
     for f in sorted(Path(checkoutpath).glob("**/*.zone")):
         zonename = get_zone_name(f, f.read_bytes())
         if whitelist and not any(
@@ -396,7 +397,8 @@ def template_config(checkoutpath, template, blacklist=set(), whitelist=set()):
             mapping, zonename=zonename,
             zonefile=str(f), zonevar=zonevar,
         ))
-    out.append(footertpl.substitute(mapping))
+    if footertpl.template:
+        out.append(footertpl.substitute(mapping))
     return "\n".join(out)
 
 
