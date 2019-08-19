@@ -1,5 +1,5 @@
-.. image:: https://travis-ci.com/oskar456/dzonegit.svg?branch=master
-    :target: https://travis-ci.com/oskar456/dzonegit
+.. image:: https://travis-ci.org/oskar456/dzonegit.svg?branch=master
+    :target: https://travis-ci.org/oskar456/dzonegit
 
 Git hooks to manage a repository of DNS zones
 =============================================
