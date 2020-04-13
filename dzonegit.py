@@ -119,7 +119,7 @@ def compile_zone(zonename, zonedata, unixtime=None, missing_dot=False):
         "CompileResults", "success, serial, zonehash, stderr",
     )
     r = subprocess.run(
-        ["/usr/sbin/named-compilezone", "-o", "-", zonename, "/dev/stdin"],
+        ["/usr/bin/env", "named-compilezone", "-o", "-", zonename, "/dev/stdin"],
         input=unixtime_directive(zonedata, unixtime),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
