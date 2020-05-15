@@ -395,7 +395,7 @@ def template_config(checkoutpath, template, blacklist=set(), whitelist=set()):
             zonevar = defaultvar
         out.append(itemtpl.substitute(
             mapping, zonename=zonename,
-            zonefile=str(f), zonevar=zonevar,
+            zonefile=str(f), zonerelfile=str(f.relative_to(checkoutpath)), zonevar=zonevar,
         ))
     if footertpl.template:
         out.append(footertpl.substitute(mapping))
