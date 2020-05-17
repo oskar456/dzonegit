@@ -183,6 +183,9 @@ In the template strings, these placeholders are supported:
 ``$zonefile``
   Full path to the zone file
 
+``$zonerelfile``
+  Path to the zone file, relative to checkout path (useful for chroot environments)
+
 ``$zonevar``
   Per-zone specific variable, see above
 
