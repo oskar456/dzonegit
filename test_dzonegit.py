@@ -15,6 +15,8 @@ def git_dir(tmpdir_factory):
     d = tmpdir_factory.getbasetemp()
     d.chdir()
     subprocess.call(["git", "init"])
+    subprocess.call(["git", "config", "user.name", "dzonegit pytest"])
+    subprocess.call(["git", "config", "user.email", "nonexistent@example.com"])
     return d
 
 
