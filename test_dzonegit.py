@@ -156,6 +156,7 @@ $ORIGIN eXample.com. ;coment
         60 IN NS ns
 ns.example.com.      60 IN A 192.0.2.1
 """
+    subprocess.call(["git", "config", "dzonegit.allowfancynames", "FALSE"])
     assert "example.com" == dzonegit.get_zone_name(
         "zones/example.com.zone", "",
     )
