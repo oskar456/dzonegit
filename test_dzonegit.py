@@ -27,6 +27,7 @@ def test_get_head(git_dir):
     subprocess.call(["git", "add", "dummy"])
     subprocess.call(["git", "commit", "-m", "dummy"])
     assert dzonegit.get_head() != "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+    subprocess.call(["git", "update-ref", "-d", "HEAD"])
 
 
 def test_check_whitespace_errors(git_dir):
