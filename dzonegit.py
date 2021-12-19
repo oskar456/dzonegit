@@ -56,9 +56,9 @@ def get_head(empty=False):
 
 def check_whitespace_errors(against, revision=None):
     if revision:
-        cmd = ["git", "diff-tree", "--check", against, revision]
+        cmd = ["git", "diff-tree", "--check", against, revision, "*.zone"]
     else:
-        cmd = ["git", "diff-index", "--check", "--cached", against]
+        cmd = ["git", "diff-index", "--check", "--cached", against, "*.zone"]
     r = subprocess.run(
         cmd,
         stdout=subprocess.PIPE,
