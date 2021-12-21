@@ -34,12 +34,15 @@ def test_check_whitespace_errors(git_dir):
     git_dir.chdir()
     git_dir.join("whitespace").write(" ")
     subprocess.call(["git", "add", "whitespace"])
+    dzonegit.check_whitespace_errors(dzonegit.get_head())
+    git_dir.join("whitespace.zone").write(" ")
+    subprocess.call(["git", "add", "whitespace.zone"])
     with pytest.raises(ValueError):
         dzonegit.check_whitespace_errors(dzonegit.get_head())
     subprocess.call(["git", "commit", "-m", "whitespace"])
     with pytest.raises(ValueError):
         dzonegit.check_whitespace_errors("HEAD~", dzonegit.get_head())
-    subprocess.call(["git", "rm", "-f", "whitespace"])
+    subprocess.call(["git", "rm", "-f", "whitespace*"])
     subprocess.call(["git", "commit", "-m", "rm whitespace"])
     dzonegit.check_whitespace_errors(dzonegit.get_head())
     dzonegit.check_whitespace_errors("HEAD~", dzonegit.get_head())
@@ -125,7 +128,7 @@ def test_get_altered_files(git_dir):
     assert files == {Path("dummy"), Path("new")}
     # Refers to test_check_whitespace_errors
     files = set(dzonegit.get_altered_files("HEAD~", "D", "HEAD"))
-    assert files == {Path("whitespace")}
+    assert files == {Path("whitespace"), Path("whitespace.zone")}
     subprocess.call(["git", "checkout", "-f", "HEAD"])
     assert set(dzonegit.get_altered_files("HEAD", "AM")) == set()
 
